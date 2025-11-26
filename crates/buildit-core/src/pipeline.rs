@@ -6,7 +6,6 @@ use std::collections::HashMap;
 
 use crate::ResourceId;
 use crate::deployer::DeploymentSpec;
-use crate::executor::JobSpec;
 
 /// A CI/CD pipeline definition.
 #[derive(Debug, Clone, Serialize, Deserialize)]

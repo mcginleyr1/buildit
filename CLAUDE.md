@@ -83,6 +83,41 @@ cd crates/buildit-db && sqlx migrate run
 - Kubernetes available via OrbStack (`kubectl` configured)
 - PostgreSQL runs in K8s namespace `buildit`
 
+## Multi-Tenancy Model
+
+BuildIt uses a GitHub-style organization model:
+
+```
+Organization (company/account)
+├── Users (via org_memberships: owner/admin/member)
+├── Tenants/Workspaces (projects)
+│   ├── Pipelines
+│   ├── Pipeline Runs
+│   ├── Services
+│   ├── Environments
+│   ├── Deployments
+│   └── Targets
+└── API Keys (org-wide or tenant-scoped)
+```
+
+**Key tables:**
+- `organizations` - top-level accounts with plan tiers (free/pro/enterprise)
+- `users` - user accounts with email/password or OAuth
+- `org_memberships` - user roles within an org (owner/admin/member)
+- `tenants` - workspaces within an org (has `organization_id` FK)
+- `tenant_memberships` - user access to specific tenants (admin/member/viewer)
+- `api_keys` - programmatic access with scopes
+- `sessions` - web auth sessions
+- `audit_logs` - action history
+
+**Repository pattern:**
+- `PgOrganizationRepo` - orgs, users, memberships, API keys, sessions, audit logs
+- `PgTenantRepo` - tenant CRUD
+- `PgPipelineRepo` - pipelines and runs
+- `PgDeploymentRepo` - targets, environments, services, deployments
+
+All repos are available via `AppState` in the API.
+
 ## Key Dependencies
 
 - **axum**: Web framework

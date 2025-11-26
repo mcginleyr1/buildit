@@ -255,7 +255,7 @@ impl DeploymentRepo for PgDeploymentRepo {
         .bind(service_id.as_uuid())
         .fetch_optional(&self.pool)
         .await?;
-        Ok(result.and_then(|(dt,)| Some(dt)))
+        Ok(result.map(|(dt,)| dt))
     }
 
     async fn list_deployments(

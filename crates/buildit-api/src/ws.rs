@@ -3,7 +3,7 @@
 use axum::extract::State;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::response::Response;
-use futures::{SinkExt, StreamExt};
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
@@ -59,8 +59,24 @@ enum WsCommand {
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[allow(dead_code)]
 enum WsMessage {
-    Subscribed { channel: String },
-    RunUpdate { run_id: String, status: String },
-    LogLine { run_id: String, line: String },
+    Subscribed {
+        channel: String,
+    },
+    RunUpdate {
+        run_id: String,
+        status: String,
+    },
+    StageUpdate {
+        run_id: String,
+        stage_name: String,
+        status: String,
+    },
+    LogLine {
+        run_id: String,
+        stage_name: String,
+        line: String,
+        line_type: Option<String>,
+    },
 }

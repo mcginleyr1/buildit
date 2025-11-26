@@ -31,8 +31,8 @@ tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip", "fs"] }
 
 # Templating
-askama = "0.12"
-askama_axum = "0.4"
+askama = "0.14"
+askama_web = { version = "0.14", features = ["axum-0.8"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }

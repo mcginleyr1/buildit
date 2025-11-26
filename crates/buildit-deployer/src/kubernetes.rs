@@ -9,7 +9,9 @@ use kube::Client;
 
 /// Kubernetes-based deployer.
 pub struct KubernetesDeployer {
+    #[allow(dead_code)]
     client: Client,
+    #[allow(dead_code)]
     namespace: String,
 }
 

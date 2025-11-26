@@ -257,9 +257,14 @@ nav_pipelines %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% 
                 </div>
                 <div class="p-6">
                     <!-- SVG DAG -->
-                    <div id="dag-container" class="flex items-center justify-center min-h-[200px]">
-                        <svg id="dag-svg" class="w-full" viewBox="0 0 800 120" preserveAspectRatio="xMidYMid meet">
-                            <!-- Edges (connections) -->
+                    <div id="dag-container" class="flex items-center justify-center min-h-[200px] overflow-x-auto">
+                        <svg
+                            id="dag-svg"
+                            class="w-full"
+                            viewBox="0 0 {{ dag_width }} {{ dag_height }}"
+                            preserveAspectRatio="xMidYMid meet"
+                        >
+                            <!-- Definitions -->
                             <defs>
                                 <marker
                                     id="arrowhead"
@@ -271,47 +276,36 @@ nav_pipelines %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% 
                                 >
                                     <polygon points="0 0, 10 3.5, 0 7" fill="#71717a" />
                                 </marker>
+                                <marker
+                                    id="arrowhead-success"
+                                    markerWidth="10"
+                                    markerHeight="7"
+                                    refX="9"
+                                    refY="3.5"
+                                    orient="auto"
+                                >
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e" />
+                                </marker>
                             </defs>
 
-                            {% for stage in stages %} {% for dep in stage.dependencies %}
-                            <!-- Edge from {{ dep }} to {{ stage.name }} -->
-                            {% endfor %} {% endfor %}
-
-                            <!-- Draw edges between nodes -->
-                            <line
-                                x1="180"
-                                y1="60"
-                                x2="270"
-                                y2="60"
+                            <!-- Edges (connections between stages) -->
+                            {% for edge in edges %}
+                            <path
+                                d="M {{ edge.from_x }} {{ edge.from_y }} C {{ edge.from_x + 40 }} {{ edge.from_y }}, {{ edge.to_x - 40 }} {{ edge.to_y }}, {{ edge.to_x }} {{ edge.to_y }}"
                                 stroke="#3f3f46"
                                 stroke-width="2"
+                                fill="none"
                                 marker-end="url(#arrowhead)"
                             />
-                            <line
-                                x1="380"
-                                y1="60"
-                                x2="470"
-                                y2="60"
-                                stroke="#3f3f46"
-                                stroke-width="2"
-                                marker-end="url(#arrowhead)"
-                            />
-                            <line
-                                x1="580"
-                                y1="60"
-                                x2="670"
-                                y2="60"
-                                stroke="#3f3f46"
-                                stroke-width="2"
-                                marker-end="url(#arrowhead)"
-                            />
+                            {% endfor %}
 
                             <!-- Nodes -->
                             {% for stage in stages %}
                             <g
                                 class="dag-node cursor-pointer"
                                 onclick="selectStage('{{ stage.name }}')"
-                                transform="translate({{ loop.index0 * 200 + 50 }}, 30)"
+                                transform="translate({{ stage.x }}, {{ stage.y }})"
+                                id="dag-node-{{ stage.name }}"
                             >
                                 <!-- Node background -->
                                 {% if stage.status == "succeeded" %}
@@ -365,6 +359,20 @@ nav_pipelines %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% 
                                     stroke-width="2"
                                 />
                                 <circle cx="20" cy="30" r="8" fill="#3b82f6" class="animate-pulse" />
+                                {% else if stage.status == "skipped" %}
+                                <rect
+                                    x="0"
+                                    y="0"
+                                    width="130"
+                                    height="60"
+                                    rx="8"
+                                    fill="#27272a"
+                                    stroke="#a1a1aa"
+                                    stroke-width="2"
+                                    stroke-dasharray="4"
+                                />
+                                <circle cx="20" cy="30" r="8" fill="#a1a1aa" />
+                                <path d="M16 30h8" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" />
                                 {% else %}
                                 <rect
                                     x="0"
@@ -466,6 +474,7 @@ nav_pipelines %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% 
 </div>
 
 <script>
+    // Stage selection
     function selectStage(stageName) {
         // Update stage name display
         document.getElementById("current-stage-name").textContent = stageName;
@@ -478,5 +487,174 @@ nav_pipelines %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% 
 
         // TODO: Load logs for the selected stage via AJAX/htmx
     }
+
+    // SVG node style definitions for each status
+    const nodeStyles = {
+        succeeded: {
+            fill: "#052e16",
+            stroke: "#22c55e",
+            iconFill: "#22c55e",
+            iconPath: "M16 30l3 3 5-5",
+            iconType: "path",
+        },
+        failed: {
+            fill: "#450a0a",
+            stroke: "#ef4444",
+            iconFill: "#ef4444",
+            iconPath: "M17 27l6 6m0-6l-6 6",
+            iconType: "path",
+        },
+        running: {
+            fill: "#172554",
+            stroke: "#3b82f6",
+            iconFill: "#3b82f6",
+            iconType: "circle",
+            animated: true,
+        },
+        skipped: {
+            fill: "#27272a",
+            stroke: "#a1a1aa",
+            iconFill: "#a1a1aa",
+            iconPath: "M16 30h8",
+            iconType: "path",
+            dashed: true,
+        },
+        pending: {
+            fill: "#27272a",
+            stroke: "#52525b",
+            iconFill: "#71717a",
+            iconType: "dot",
+            dashed: true,
+        },
+    };
+
+    // Update DAG node appearance based on status
+    function updateDagNode(stageName, status) {
+        const node = document.getElementById("dag-node-" + stageName);
+        if (!node) return;
+
+        const style = nodeStyles[status] || nodeStyles.pending;
+        const rect = node.querySelector("rect");
+        const circle = node.querySelector("circle");
+        const path = node.querySelector("path");
+
+        if (rect) {
+            rect.setAttribute("fill", style.fill);
+            rect.setAttribute("stroke", style.stroke);
+            if (style.dashed) {
+                rect.setAttribute("stroke-dasharray", "4");
+            } else {
+                rect.removeAttribute("stroke-dasharray");
+            }
+        }
+
+        if (circle) {
+            circle.setAttribute("fill", style.iconFill);
+            if (style.iconType === "dot") {
+                circle.setAttribute("r", "4");
+            } else {
+                circle.setAttribute("r", "8");
+            }
+            if (style.animated) {
+                circle.classList.add("animate-pulse");
+            } else {
+                circle.classList.remove("animate-pulse");
+            }
+        }
+
+        if (path && style.iconPath) {
+            path.setAttribute("d", style.iconPath);
+            path.style.display = "";
+        } else if (path && style.iconType !== "path") {
+            path.style.display = "none";
+        }
+    }
+
+    // Update sidebar stage button appearance
+    function updateSidebarStage(stageName, status) {
+        const btn = document.getElementById("stage-btn-" + stageName);
+        if (!btn) return;
+
+        const indicator = btn.querySelector("span:first-child");
+        if (!indicator) return;
+
+        // Remove existing status classes
+        indicator.className = "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center";
+
+        const icon = indicator.querySelector("svg") || indicator.querySelector("span");
+
+        switch (status) {
+            case "succeeded":
+                indicator.classList.add("bg-green-500/10");
+                if (icon) {
+                    icon.outerHTML = `<svg class="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>`;
+                }
+                break;
+            case "failed":
+                indicator.classList.add("bg-red-500/10");
+                if (icon) {
+                    icon.outerHTML = `<svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>`;
+                }
+                break;
+            case "running":
+                indicator.classList.add("bg-blue-500/10");
+                if (icon) {
+                    icon.outerHTML = `<svg class="w-3.5 h-3.5 text-blue-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>`;
+                }
+                break;
+            default:
+                indicator.classList.add("bg-zinc-500/10");
+                if (icon) {
+                    icon.outerHTML = `<span class="w-2 h-2 rounded-full bg-zinc-400"></span>`;
+                }
+        }
+    }
+
+    // Append log line to output
+    function appendLogLine(line, type) {
+        const logOutput = document.getElementById("log-output");
+        if (!logOutput) return;
+
+        const div = document.createElement("div");
+        div.className = "log-line";
+        if (type === "error") {
+            div.classList.add("text-red-400");
+        } else if (type === "success") {
+            div.classList.add("text-green-400");
+        }
+        div.textContent = line;
+        logOutput.appendChild(div);
+        logOutput.scrollTop = logOutput.scrollHeight;
+    }
+
+    // WebSocket message handler for htmx ws extension
+    document.body.addEventListener("htmx:wsAfterMessage", function (event) {
+        try {
+            const data = JSON.parse(event.detail.message);
+            switch (data.type) {
+                case "stage_update":
+                    updateDagNode(data.stage_name, data.status);
+                    updateSidebarStage(data.stage_name, data.status);
+                    break;
+                case "log_line":
+                    appendLogLine(data.line, data.line_type);
+                    break;
+                case "run_update":
+                    // Could refresh the whole page or update header status
+                    if (data.status === "succeeded" || data.status === "failed") {
+                        // Optionally reload to show final state
+                    }
+                    break;
+            }
+        } catch (e) {
+            // Not JSON or unhandled message type
+        }
+    });
 </script>
 {% endblock %}

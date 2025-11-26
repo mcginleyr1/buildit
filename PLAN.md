@@ -5,7 +5,6 @@ A modern, Rust-based CI/CD platform with container-native builds and multi-targe
 ## Related Documentation
 
 - **[IMPLEMENTATION.md](./IMPLEMENTATION.md)** - Current implementation status and completed work
-- **[FRONTEND.md](./FRONTEND.md)** - UI design system, page designs, and component specs
 - **[CLAUDE.md](./CLAUDE.md)** - Development environment and quick start guide
 
 ---
@@ -148,20 +147,27 @@ Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
 
 ---
 
-## Phase 4: Multi-Tenancy & Security
+## Phase 4: Multi-Tenancy & Security ✅
 
-### 4.1 Tenant Management
+### 4.1 Multi-Tenancy Model ✅
+- [x] Organizations table with billing/plan support
+- [x] Users table with password hashing support
+- [x] Organization memberships with roles (owner, admin, member, viewer)
+- [x] API keys with scoped permissions and expiration
+- [x] Repository pattern for all multi-tenancy operations
+
+### 4.2 Tenant Management ✅
 - [x] Basic CRUD
-- [ ] Tenant isolation
+- [ ] Tenant isolation enforcement
 - [ ] Quota enforcement
 
-### 4.2 Authentication
+### 4.3 Authentication
 - [ ] OIDC/OAuth2
 - [ ] GitHub/Google OAuth
-- [ ] API tokens
+- [x] API tokens (database layer complete)
 - [ ] Session management
 
-### 4.3 Authorization
+### 4.4 Authorization
 - [ ] OPA integration
 - [ ] Policy definitions
 - [ ] Audit logging
@@ -181,8 +187,7 @@ Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
 - [x] Pipelines CRUD
 - [x] Pipeline runs
 - [x] Tenants CRUD
-- [ ] Deployments
-- [ ] Environments
+- [x] Deployments (environments, services, targets)
 - [ ] Secrets
 - [ ] Users
 
@@ -195,48 +200,48 @@ Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
 
 ---
 
-## Phase 6: User Interface
-
-> **See [FRONTEND.md](./FRONTEND.md) for full UI specifications**
+## Phase 6: User Interface ✅
 
 ### 6.1 Foundation ✅
-- [x] Askama templates
+- [x] Askama templates (upgraded to v0.14 with askama_web for axum 0.8)
 - [x] Tailwind CSS
 - [x] htmx + WebSocket
 - [x] Dark/light theme
 
-### 6.2 Design System (In Progress)
+### 6.2 Design System ✅
 - [x] Color palette
 - [x] Typography
-- [ ] Full component library (see FRONTEND.md)
-- [ ] Sidebar navigation layout
+- [x] Sidebar navigation layout
+- [x] Component library (cards, buttons, forms, tables)
 
-### 6.3 Pipeline Pages
-- [x] Pipeline list (basic)
-- [x] Pipeline detail (basic)
-- [x] Run detail with logs (basic)
-- [ ] **DAG visualization** - Key feature
-- [ ] Pipeline settings
+### 6.3 Pipeline Pages ✅
+- [x] Pipeline list
+- [x] Pipeline detail with runs
+- [x] Run detail with log viewer
+- [x] **Pipeline creation wizard** (7-step: Source, Build, Triggers, Environment, Deployment, Notifications, Review)
+- [ ] DAG visualization - Key feature
+- [ ] Pipeline settings/edit
 
-### 6.4 Deployment Pages
-- [ ] Dashboard with stats
-- [ ] Environments list
-- [ ] Environment detail
-- [ ] Service detail
-- [ ] Deployment history
-- [ ] Targets management
+### 6.4 Deployment Pages ✅
+- [x] Dashboard with stats (pipeline count, run count, success rate)
+- [x] Environments list with health status
+- [x] Services list with deployment status
+- [x] Deployment history with filtering
+- [x] Targets/Infrastructure management
 
-### 6.5 Settings Pages
-- [ ] Organization settings
-- [ ] Team/user management
-- [ ] Integrations
-- [ ] Secrets management
+### 6.5 Settings Pages ✅
+- [x] General settings (organization name, slug)
+- [x] Team management (members from org_memberships)
+- [x] Secrets management
+- [x] API tokens management
+- [x] Git provider connections (GitHub, GitLab, Bitbucket placeholders)
+- [x] Notification settings (Slack, webhooks placeholders)
 
 ### 6.6 UX Features
 - [ ] Command palette (Cmd+K)
 - [ ] Keyboard shortcuts
 - [ ] Toast notifications
-- [ ] Empty states
+- [ ] Empty states (basic)
 - [ ] Loading states
 
 ---
@@ -290,19 +295,20 @@ Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
 - [x] Simple UI
 - [x] PostgreSQL integration
 
-### M2: UI Overhaul (Current Focus)
-- [ ] Sidebar navigation layout
-- [ ] Dashboard with stats
-- [ ] DAG visualization for runs
-- [ ] Deployment pages (environments, services)
-- [ ] Settings pages
-- [ ] Fix broken routes (/deployments, /settings)
+### M2: UI & Multi-Tenancy ✅
+- [x] Sidebar navigation layout
+- [x] Dashboard with stats
+- [x] Multi-tenancy data model (organizations, users, memberships, API keys)
+- [x] Deployment pages (environments, services, targets, history)
+- [x] Settings pages (general, team, secrets, tokens, git, notifications)
+- [x] Pipeline creation wizard (7-step)
+- [x] All routes working
 
-### M3: Kubernetes Ready
+### M3: Kubernetes Ready (Next)
 - [ ] KubernetesExecutor
 - [ ] KubernetesDeployer
 - [ ] Helm chart
-- [ ] Authentication
+- [ ] Authentication (OAuth2/OIDC)
 
 ### M4: Multi-Tenant Production
 - [ ] OPA integration
@@ -311,9 +317,10 @@ Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
 - [ ] Quota enforcement
 
 ### M5: Advanced Features
+- [ ] DAG visualization
 - [ ] Canary deployments
 - [ ] Caching
-- [ ] Notifications
+- [ ] Notifications (actually send them)
 - [ ] Preview environments
 - [ ] Additional deployers (Fly, Cloud Run)
 
@@ -324,12 +331,12 @@ Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
 | Component | Technology | Status |
 |-----------|------------|--------|
 | Language | Rust | ✅ |
-| Web Framework | Axum | ✅ |
+| Web Framework | Axum 0.8 | ✅ |
 | Database | PostgreSQL + SQLx | ✅ |
 | Type-safe SQL | Clorinde | ✅ |
 | Job Queue | PostgreSQL | ✅ |
 | Config Format | KDL | ✅ |
-| Templating | Askama | ✅ |
+| Templating | Askama 0.14 + askama_web | ✅ |
 | CSS | Tailwind CSS | ✅ |
 | Interactivity | htmx + WebSocket | ✅ |
 | Auth | OIDC/OAuth2 | ❌ |
@@ -342,10 +349,24 @@ Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
 
 ---
 
-## Immediate Next Steps
+## What's Left (Priority Order)
 
-1. **Create FRONTEND.md** with full UI specifications
-2. **UI Overhaul** - Implement new design system and pages
-3. **KubernetesExecutor** - Run pipeline jobs as K8s pods
-4. **Deployment Pages** - Environments, services, targets UI
-5. **Authentication** - OAuth2/OIDC for user login
+### High Priority
+1. **KubernetesExecutor** - Run pipeline jobs as K8s pods (scaffolded, needs implementation)
+2. **Authentication** - OAuth2/OIDC for user login, connect to users table
+3. **DAG Visualization** - Visual pipeline stage graph in run detail page
+
+### Medium Priority
+4. **KubernetesDeployer** - Deploy services to K8s clusters
+5. **Artifact Storage** - S3/GCS for build outputs
+6. **Secret Management** - Integrate with Vault or K8s secrets
+7. **Notifications** - Actually send Slack/webhook notifications
+8. **Git Webhooks** - GitHub/GitLab webhook receivers for auto-triggering
+
+### Lower Priority
+9. **Helm Chart** - Production K8s deployment
+10. **OPA Integration** - Fine-grained authorization
+11. **Caching Layer** - Speed up builds
+12. **Matrix Builds** - Multiple configurations
+13. **Preview Environments** - Per-PR deployments
+14. **Additional Deployers** - Fly.io, Cloud Run, Lambda

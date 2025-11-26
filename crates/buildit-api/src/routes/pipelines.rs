@@ -193,7 +193,13 @@ async fn trigger_run(
 
             // Execute
             tracing::info!(run_id = %run_id, "Executing pipeline with {} stages", pipeline.stages.len());
-            let (_event_rx, result) = orchestrator.execute(&pipeline, env).await;
+            let (_event_rx, result_handle) = orchestrator.execute(&pipeline, env);
+
+            // Consume events (for now we just drain them, later we'll stream to websocket)
+            let mut event_rx = _event_rx;
+            while event_rx.recv().await.is_some() {}
+
+            let result = result_handle.await.expect("Pipeline execution task failed");
 
             // Update final status
             let status = if result.success {

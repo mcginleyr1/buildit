@@ -1,0 +1,19 @@
+// BuildIt CI pipeline - builds itself!
+pipeline "buildit"
+
+stage "check" {
+    image "rustlang/rust:nightly"
+    run "rustup component add rustfmt clippy"
+    run "cargo fmt --check"
+    run "cargo clippy -- -D warnings"
+}
+
+stage "test" needs="check" {
+    image "rustlang/rust:nightly"
+    run "cargo test --workspace"
+}
+
+stage "build" needs="test" {
+    image "rustlang/rust:nightly"
+    run "cargo build --release --workspace"
+}

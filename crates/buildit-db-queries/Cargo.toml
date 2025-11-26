@@ -22,3 +22,7 @@ uuid = { version = "1", features = ["serde"] }
 [features]
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
 default = ["deadpool"]
+wasm-async = []
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ["cfg(feature, values(\"wasm-async\"))"] }

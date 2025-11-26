@@ -1,13 +1,16 @@
 //! Pipeline orchestrator - executes pipeline stages in dependency order.
 
 use buildit_core::ResourceId;
-use buildit_core::executor::{Executor, JobSpec, JobStatus, LogLine, ResourceRequirements};
-use buildit_core::pipeline::{Pipeline, Stage, StageAction, StageStatus};
+use buildit_core::executor::{
+    Executor, JobSpec, JobStatus, LogLine, ResourceRequirements, VolumeMount,
+};
+use buildit_core::pipeline::{Pipeline, Stage, StageAction};
 use futures::StreamExt;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 /// State of a stage during execution.
 #[derive(Debug, Clone)]
@@ -51,36 +54,65 @@ pub struct PipelineResult {
 /// Orchestrates the execution of a pipeline.
 pub struct PipelineOrchestrator {
     executor: Arc<dyn Executor>,
+    /// Working directory to mount into containers
+    working_dir: Option<PathBuf>,
 }
 
 impl PipelineOrchestrator {
     pub fn new(executor: Arc<dyn Executor>) -> Self {
-        Self { executor }
+        Self {
+            executor,
+            working_dir: None,
+        }
     }
 
-    /// Execute a pipeline, returning a channel of events and the final result.
-    pub async fn execute(
+    /// Create an orchestrator with a working directory to mount into containers.
+    pub fn with_working_dir(executor: Arc<dyn Executor>, working_dir: PathBuf) -> Self {
+        Self {
+            executor,
+            working_dir: Some(working_dir),
+        }
+    }
+
+    /// Execute a pipeline, returning a channel of events and a handle to get the final result.
+    pub fn execute(
         &self,
         pipeline: &Pipeline,
         env: HashMap<String, String>,
-    ) -> (mpsc::Receiver<PipelineEvent>, PipelineResult) {
+    ) -> (
+        mpsc::Receiver<PipelineEvent>,
+        tokio::task::JoinHandle<PipelineResult>,
+    ) {
         let (tx, rx) = mpsc::channel(100);
+        let executor = self.executor.clone();
+        let working_dir = self.working_dir.clone();
+        let stages = pipeline.stages.clone();
 
-        let mut stage_states: HashMap<String, StageState> = pipeline
-            .stages
+        let handle = tokio::spawn(async move {
+            Self::execute_inner(executor, working_dir, stages, env, tx).await
+        });
+
+        (rx, handle)
+    }
+
+    /// Internal execution logic
+    async fn execute_inner(
+        executor: Arc<dyn Executor>,
+        working_dir: Option<PathBuf>,
+        stages: Vec<Stage>,
+        env: HashMap<String, String>,
+        tx: mpsc::Sender<PipelineEvent>,
+    ) -> PipelineResult {
+        let mut stage_states: HashMap<String, StageState> = stages
             .iter()
             .map(|s| (s.name.clone(), StageState::Pending))
             .collect();
 
         // Build execution order using topological sort
-        let execution_order = self.topological_sort(&pipeline.stages);
+        let execution_order = Self::topological_sort(&stages);
 
         for stage_name in execution_order {
-            let stage = pipeline
-                .stages
-                .iter()
-                .find(|s| s.name == stage_name)
-                .unwrap();
+            let stage = stages.iter().find(|s| s.name == stage_name).unwrap();
 
             // Check if dependencies are satisfied
             let deps_satisfied = stage.needs.iter().all(|dep| {
@@ -125,7 +157,7 @@ impl PipelineOrchestrator {
                 })
                 .await;
 
-            match self.execute_stage(stage, &env, &tx).await {
+            match Self::execute_stage(&executor, &working_dir, stage, &env, &tx).await {
                 Ok(()) => {
                     info!(stage = %stage.name, "Stage completed successfully");
                     stage_states.insert(stage.name.clone(), StageState::Succeeded);
@@ -157,18 +189,16 @@ impl PipelineOrchestrator {
         let success = stage_states.values().all(|s| s.is_success());
         let _ = tx.send(PipelineEvent::PipelineCompleted { success }).await;
 
-        (
-            rx,
-            PipelineResult {
-                success,
-                stage_states,
-            },
-        )
+        PipelineResult {
+            success,
+            stage_states,
+        }
     }
 
     /// Execute a single stage.
     async fn execute_stage(
-        &self,
+        executor: &Arc<dyn Executor>,
+        working_dir: &Option<PathBuf>,
         stage: &Stage,
         env: &HashMap<String, String>,
         tx: &mpsc::Sender<PipelineEvent>,
@@ -188,6 +218,17 @@ impl PipelineOrchestrator {
                 let script = commands.join(" && ");
                 let command = vec!["/bin/sh".to_string(), "-c".to_string(), script];
 
+                // Build volume mounts - mount working directory if provided
+                let volumes = if let Some(wd) = working_dir {
+                    vec![VolumeMount {
+                        name: wd.to_string_lossy().to_string(),
+                        mount_path: "/workspace".to_string(),
+                        read_only: false,
+                    }]
+                } else {
+                    vec![]
+                };
+
                 let job_spec = JobSpec {
                     id: ResourceId::new(),
                     image: image.clone(),
@@ -196,21 +237,19 @@ impl PipelineOrchestrator {
                     env: full_env,
                     resources: ResourceRequirements::default(),
                     timeout: None,
-                    volumes: vec![],
+                    volumes,
                 };
 
                 info!(stage = %stage.name, image = %image, "Spawning job");
 
                 // Spawn the job
-                let handle = self
-                    .executor
+                let handle = executor
                     .spawn(job_spec)
                     .await
                     .map_err(|e| format!("Failed to spawn job: {}", e))?;
 
                 // Stream logs
-                let log_stream = self
-                    .executor
+                let log_stream = executor
                     .logs(&handle)
                     .await
                     .map_err(|e| format!("Failed to get logs: {}", e))?;
@@ -232,13 +271,13 @@ impl PipelineOrchestrator {
                 });
 
                 // Wait for job completion
-                let result = self
-                    .executor
+                let result = executor
                     .wait(&handle)
                     .await
                     .map_err(|e| format!("Failed to wait for job: {}", e))?;
 
-                // Wait for logs to finish
+                // Abort log streaming task (it may still be following a stopped container)
+                log_handle.abort();
                 let _ = log_handle.await;
 
                 // Check result
@@ -269,21 +308,20 @@ impl PipelineOrchestrator {
     }
 
     /// Topological sort of stages based on dependencies.
-    fn topological_sort(&self, stages: &[Stage]) -> Vec<String> {
+    fn topological_sort(stages: &[Stage]) -> Vec<String> {
         let mut result = Vec::new();
         let mut visited = HashMap::new();
         let stage_map: HashMap<&str, &Stage> =
             stages.iter().map(|s| (s.name.as_str(), s)).collect();
 
         for stage in stages {
-            self.topo_visit(&stage.name, &stage_map, &mut visited, &mut result);
+            Self::topo_visit(&stage.name, &stage_map, &mut visited, &mut result);
         }
 
         result
     }
 
     fn topo_visit(
-        &self,
         name: &str,
         stage_map: &HashMap<&str, &Stage>,
         visited: &mut HashMap<String, bool>,
@@ -297,7 +335,7 @@ impl PipelineOrchestrator {
 
         if let Some(stage) = stage_map.get(name) {
             for dep in &stage.needs {
-                self.topo_visit(dep, stage_map, visited, result);
+                Self::topo_visit(dep, stage_map, visited, result);
             }
         }
 
@@ -333,11 +371,7 @@ mod tests {
             make_stage("build", vec!["test"]),
         ];
 
-        let orchestrator = PipelineOrchestrator {
-            executor: Arc::new(MockExecutor),
-        };
-
-        let order = orchestrator.topological_sort(&stages);
+        let order = PipelineOrchestrator::topological_sort(&stages);
 
         // test should come before build, build should come before deploy
         let test_idx = order.iter().position(|s| s == "test").unwrap();

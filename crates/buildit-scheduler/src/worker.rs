@@ -11,6 +11,7 @@ use tracing::{info, warn};
 pub struct Worker {
     id: String,
     queue: Arc<JobQueue>,
+    #[allow(dead_code)]
     executor: Arc<dyn Executor>,
 }
 

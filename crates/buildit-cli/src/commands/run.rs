@@ -6,7 +6,6 @@ use buildit_executor::LocalDockerExecutor;
 use buildit_scheduler::{PipelineEvent, PipelineOrchestrator};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tracing::info;
 
 /// Run a pipeline locally using Docker.
 pub async fn run_local(config_path: &str, stages: Option<Vec<String>>) -> Result<()> {
@@ -37,8 +36,24 @@ pub async fn run_local(config_path: &str, stages: Option<Vec<String>>) -> Result
     let executor = LocalDockerExecutor::new().context("Failed to connect to Docker")?;
     let executor = Arc::new(executor);
 
-    // Create the orchestrator
-    let orchestrator = PipelineOrchestrator::new(executor);
+    // Get the working directory (directory containing the config file, or current dir)
+    let working_dir = std::path::Path::new(config_path)
+        .parent()
+        .map(|p| {
+            if p.as_os_str().is_empty() {
+                std::path::Path::new(".")
+            } else {
+                p
+            }
+        })
+        .unwrap_or(std::path::Path::new("."))
+        .canonicalize()
+        .context("Failed to resolve working directory")?;
+
+    println!("Working directory: {}", working_dir.display());
+
+    // Create the orchestrator with working directory
+    let orchestrator = PipelineOrchestrator::with_working_dir(executor, working_dir);
 
     // Build environment variables
     let mut env = HashMap::new();
@@ -48,9 +63,9 @@ pub async fn run_local(config_path: &str, stages: Option<Vec<String>>) -> Result
     // Execute the pipeline
     println!("\n--- Starting pipeline execution ---\n");
 
-    let (mut rx, result) = orchestrator.execute(&pipeline, env).await;
+    let (mut rx, result_handle) = orchestrator.execute(&pipeline, env);
 
-    // Process events
+    // Process events concurrently with execution
     while let Some(event) = rx.recv().await {
         match event {
             PipelineEvent::StageStarted { stage } => {
@@ -80,6 +95,11 @@ pub async fn run_local(config_path: &str, stages: Option<Vec<String>>) -> Result
             }
         }
     }
+
+    // Get the final result
+    let result = result_handle
+        .await
+        .context("Pipeline execution task failed")?;
 
     // Print summary
     println!("\n--- Stage Summary ---");

@@ -34,6 +34,34 @@ pub struct PipelineRunRecord {
     pub finished_at: Option<DateTime<Utc>>,
 }
 
+/// A pipeline stage definition (template).
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct PipelineStageRecord {
+    pub id: uuid::Uuid,
+    pub pipeline_id: uuid::Uuid,
+    pub name: String,
+    pub image: Option<String>,
+    pub commands: Vec<String>,
+    pub depends_on: Vec<String>,
+    pub env: serde_json::Value,
+    pub timeout_seconds: Option<i32>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// A stage result record (run instance of a stage).
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct StageResultRecord {
+    pub id: uuid::Uuid,
+    pub pipeline_run_id: uuid::Uuid,
+    pub stage_name: String,
+    pub status: String,
+    pub job_id: Option<uuid::Uuid>,
+    pub deployment_id: Option<uuid::Uuid>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub finished_at: Option<DateTime<Utc>>,
+    pub error_message: Option<String>,
+}
+
 #[async_trait]
 pub trait PipelineRepo: Send + Sync {
     async fn create(
@@ -65,6 +93,12 @@ pub trait PipelineRepo: Send + Sync {
         limit: i64,
     ) -> DbResult<Vec<PipelineRunRecord>>;
     async fn update_run_status(&self, id: ResourceId, status: &str) -> DbResult<()>;
+
+    // Stage definition methods
+    async fn list_stages(&self, pipeline_id: ResourceId) -> DbResult<Vec<PipelineStageRecord>>;
+
+    // Stage result methods
+    async fn list_stage_results(&self, run_id: ResourceId) -> DbResult<Vec<StageResultRecord>>;
 }
 
 /// PostgreSQL implementation of PipelineRepo.
@@ -205,5 +239,25 @@ impl PipelineRepo for PgPipelineRepo {
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+
+    async fn list_stages(&self, pipeline_id: ResourceId) -> DbResult<Vec<PipelineStageRecord>> {
+        let records = sqlx::query_as::<_, PipelineStageRecord>(
+            "SELECT * FROM pipeline_stages WHERE pipeline_id = $1 ORDER BY created_at",
+        )
+        .bind(pipeline_id.as_uuid())
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(records)
+    }
+
+    async fn list_stage_results(&self, run_id: ResourceId) -> DbResult<Vec<StageResultRecord>> {
+        let records = sqlx::query_as::<_, StageResultRecord>(
+            "SELECT * FROM stage_results WHERE pipeline_run_id = $1 ORDER BY started_at NULLS LAST",
+        )
+        .bind(run_id.as_uuid())
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(records)
     }
 }

@@ -1,0 +1,1449 @@
+{% extends "base.html" %} {% block title %}Create Pipeline - BuildIt{% endblock %} {% block nav_pipelines
+%}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %} {% block breadcrumb %}
+<a href="/pipelines" class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">Pipelines</a>
+<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+</svg>
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">Create Pipeline</span>
+{% endblock %} {% block content %}
+<div class="flex gap-8 max-w-6xl mx-auto">
+    <!-- Step Sidebar -->
+    <div class="w-64 flex-shrink-0">
+        <nav class="sticky top-6 space-y-1">
+            <button
+                onclick="goToStep(1)"
+                id="step-nav-1"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors step-nav-active"
+            >
+                <span
+                    class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-indigo-600 text-white text-sm font-medium"
+                    >1</span
+                >
+                <div>
+                    <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Source</p>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Repository & branch</p>
+                </div>
+            </button>
+            <button
+                onclick="goToStep(2)"
+                id="step-nav-2"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors step-nav-inactive"
+            >
+                <span
+                    class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-sm font-medium"
+                    >2</span
+                >
+                <div>
+                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Build</p>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500">Configuration & stages</p>
+                </div>
+            </button>
+            <button
+                onclick="goToStep(3)"
+                id="step-nav-3"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors step-nav-inactive"
+            >
+                <span
+                    class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-sm font-medium"
+                    >3</span
+                >
+                <div>
+                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Triggers</p>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500">When to run</p>
+                </div>
+            </button>
+            <button
+                onclick="goToStep(4)"
+                id="step-nav-4"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors step-nav-inactive"
+            >
+                <span
+                    class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-sm font-medium"
+                    >4</span
+                >
+                <div>
+                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Environment</p>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500">Variables & secrets</p>
+                </div>
+            </button>
+            <button
+                onclick="goToStep(5)"
+                id="step-nav-5"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors step-nav-inactive"
+            >
+                <span
+                    class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-sm font-medium"
+                    >5</span
+                >
+                <div>
+                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Deployment</p>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500">Targets & environments</p>
+                </div>
+            </button>
+            <button
+                onclick="goToStep(6)"
+                id="step-nav-6"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors step-nav-inactive"
+            >
+                <span
+                    class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-sm font-medium"
+                    >6</span
+                >
+                <div>
+                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Notifications</p>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500">Alerts & webhooks</p>
+                </div>
+            </button>
+            <button
+                onclick="goToStep(7)"
+                id="step-nav-7"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors step-nav-inactive"
+            >
+                <span
+                    class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-sm font-medium"
+                    >7</span
+                >
+                <div>
+                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Review</p>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500">Create pipeline</p>
+                </div>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Step Content -->
+    <div class="flex-1 min-w-0">
+        <form id="pipeline-form" class="space-y-6">
+            <!-- Step 1: Source -->
+            <div id="step-1" class="step-content">
+                <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Source Repository</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            Connect your code repository to build from.
+                        </p>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Pipeline Name -->
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                >Pipeline Name</label
+                            >
+                            <input
+                                type="text"
+                                name="name"
+                                id="pipeline-name"
+                                placeholder="my-awesome-app"
+                                class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            />
+                            <p class="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                A unique name for your pipeline. Use lowercase letters, numbers, and hyphens.
+                            </p>
+                        </div>
+
+                        <!-- Git Provider -->
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                >Git Provider</label
+                            >
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="relative cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="git_provider"
+                                        value="github"
+                                        class="peer sr-only"
+                                        checked
+                                    />
+                                    <div
+                                        class="flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-zinc-200 dark:border-zinc-700 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-indigo-900/20 transition-colors"
+                                    >
+                                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+                                            />
+                                        </svg>
+                                        <span class="text-sm font-medium">GitHub</span>
+                                    </div>
+                                </label>
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="git_provider" value="gitlab" class="peer sr-only" />
+                                    <div
+                                        class="flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-zinc-200 dark:border-zinc-700 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-indigo-900/20 transition-colors"
+                                    >
+                                        <svg class="w-6 h-6 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z"
+                                            />
+                                        </svg>
+                                        <span class="text-sm font-medium">GitLab</span>
+                                    </div>
+                                </label>
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="git_provider" value="bitbucket" class="peer sr-only" />
+                                    <div
+                                        class="flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-zinc-200 dark:border-zinc-700 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-indigo-900/20 transition-colors"
+                                    >
+                                        <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                d="M.778 1.213a.768.768 0 00-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 00.77-.646l3.27-20.03a.768.768 0 00-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z"
+                                            />
+                                        </svg>
+                                        <span class="text-sm font-medium">Bitbucket</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Repository -->
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                >Repository</label
+                            >
+                            <div class="relative">
+                                <input
+                                    type="text"
+                                    name="repository"
+                                    id="repository"
+                                    placeholder="Search repositories..."
+                                    class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                                <svg
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    />
+                                </svg>
+                            </div>
+                            <p class="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                Select a repository or enter a URL (e.g., https://github.com/org/repo)
+                            </p>
+                        </div>
+
+                        <!-- Branch -->
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                >Default Branch</label
+                            >
+                            <select
+                                name="branch"
+                                class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            >
+                                <option value="main">main</option>
+                                <option value="master">master</option>
+                                <option value="develop">develop</option>
+                            </select>
+                        </div>
+
+                        <!-- Config File Path -->
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                >Config File Path</label
+                            >
+                            <input
+                                type="text"
+                                name="config_path"
+                                value=".buildit.kdl"
+                                class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            />
+                            <p class="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                Path to the pipeline configuration file in your repository.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Build Configuration -->
+            <div id="step-2" class="step-content hidden">
+                <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Build Configuration</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            Define your build stages and pipeline configuration.
+                        </p>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Config Source Toggle -->
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3"
+                                >Configuration Source</label
+                            >
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="config_source"
+                                        value="file"
+                                        checked
+                                        class="w-4 h-4 text-indigo-600 border-zinc-300 focus:ring-indigo-500"
+                                    />
+                                    <span class="text-sm text-zinc-700 dark:text-zinc-300"
+                                        >Use file from repository</span
+                                    >
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="config_source"
+                                        value="inline"
+                                        class="w-4 h-4 text-indigo-600 border-zinc-300 focus:ring-indigo-500"
+                                    />
+                                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Define inline</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Inline Editor -->
+                        <div id="inline-editor-section">
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                >Pipeline Configuration (KDL)</label
+                            >
+                            <div class="relative">
+                                <textarea
+                                    name="config_content"
+                                    id="config-editor"
+                                    rows="20"
+                                    class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-3 text-sm text-green-400 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    placeholder="// Define your pipeline stages here"
+                                >
+pipeline "{{ pipeline_name_default }}"
+
+stage "checkout" {
+    image "alpine/git"
+    run "git clone $REPO_URL ."
+}
+
+stage "test" needs="checkout" {
+    image "rust:1.75"
+    run "cargo test"
+}
+
+stage "build" needs="test" {
+    image "rust:1.75"
+    run "cargo build --release"
+    artifacts {
+        path "target/release/*"
+    }
+}
+
+stage "deploy" needs="build" {
+    image "alpine"
+    run "echo 'Deploying...'"
+    when {
+        branch "main"
+    }
+}</textarea
+                                >
+                            </div>
+                            <p class="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                Define your pipeline using KDL syntax.
+                                <a href="#" class="text-indigo-500 hover:text-indigo-400">View documentation</a>
+                            </p>
+                        </div>
+
+                        <!-- Stage Preview -->
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3"
+                                >Stage Preview</label
+                            >
+                            <div
+                                class="flex items-center gap-2 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg overflow-x-auto"
+                            >
+                                <div
+                                    class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-zinc-700 rounded-lg border border-zinc-200 dark:border-zinc-600 text-sm"
+                                >
+                                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                    checkout
+                                </div>
+                                <svg
+                                    class="w-4 h-4 text-zinc-400 flex-shrink-0"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M9 5l7 7-7 7"
+                                    />
+                                </svg>
+                                <div
+                                    class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-zinc-700 rounded-lg border border-zinc-200 dark:border-zinc-600 text-sm"
+                                >
+                                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                    test
+                                </div>
+                                <svg
+                                    class="w-4 h-4 text-zinc-400 flex-shrink-0"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M9 5l7 7-7 7"
+                                    />
+                                </svg>
+                                <div
+                                    class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-zinc-700 rounded-lg border border-zinc-200 dark:border-zinc-600 text-sm"
+                                >
+                                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                    build
+                                </div>
+                                <svg
+                                    class="w-4 h-4 text-zinc-400 flex-shrink-0"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M9 5l7 7-7 7"
+                                    />
+                                </svg>
+                                <div
+                                    class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-zinc-700 rounded-lg border border-zinc-200 dark:border-zinc-600 text-sm"
+                                >
+                                    <span class="w-2 h-2 rounded-full bg-zinc-400"></span>
+                                    deploy
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Build Settings -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                    >Build Timeout</label
+                                >
+                                <select
+                                    name="timeout"
+                                    class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                >
+                                    <option value="10">10 minutes</option>
+                                    <option value="30" selected>30 minutes</option>
+                                    <option value="60">1 hour</option>
+                                    <option value="120">2 hours</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                    >Runtime</label
+                                >
+                                <select
+                                    name="runtime"
+                                    class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                >
+                                    <option value="linux-amd64" selected>Linux (amd64)</option>
+                                    <option value="linux-arm64">Linux (arm64)</option>
+                                    <option value="macos">macOS</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Triggers -->
+            <div id="step-3" class="step-content hidden">
+                <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Triggers</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            Configure when your pipeline should run automatically.
+                        </p>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Push Triggers -->
+                        <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                        <svg
+                                            class="w-5 h-5 text-blue-600 dark:text-blue-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Push Events</p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Trigger on code push</p>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    name="trigger_push"
+                                    checked
+                                    class="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                            </label>
+                            <div class="mt-4 pl-12">
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                    >Branch Patterns</label
+                                >
+                                <input
+                                    type="text"
+                                    name="push_branches"
+                                    value="main, develop, feature/*"
+                                    class="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                    Comma-separated list. Use * as wildcard.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- PR Triggers -->
+                        <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                        <svg
+                                            class="w-5 h-5 text-purple-600 dark:text-purple-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                            Pull Request Events
+                                        </p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Trigger on PR activity</p>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    name="trigger_pr"
+                                    checked
+                                    class="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                            </label>
+                            <div class="mt-4 pl-12 space-y-2">
+                                <label class="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        name="pr_opened"
+                                        checked
+                                        class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Opened</span>
+                                </label>
+                                <label class="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        name="pr_synchronize"
+                                        checked
+                                        class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <span class="text-sm text-zinc-700 dark:text-zinc-300"
+                                        >Synchronized (new commits)</span
+                                    >
+                                </label>
+                                <label class="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        name="pr_reopened"
+                                        class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Reopened</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Tag Triggers -->
+                        <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                                        <svg
+                                            class="w-5 h-5 text-amber-600 dark:text-amber-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Tag Events</p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Trigger on tag creation</p>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    name="trigger_tag"
+                                    class="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                            </label>
+                            <div class="mt-4 pl-12">
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                    >Tag Patterns</label
+                                >
+                                <input
+                                    type="text"
+                                    name="tag_patterns"
+                                    value="v*"
+                                    class="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Schedule Triggers -->
+                        <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                        <svg
+                                            class="w-5 h-5 text-green-600 dark:text-green-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Scheduled</p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Run on a schedule</p>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    name="trigger_schedule"
+                                    class="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                            </label>
+                            <div class="mt-4 pl-12">
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                    >Cron Expression</label
+                                >
+                                <input
+                                    type="text"
+                                    name="schedule_cron"
+                                    placeholder="0 0 * * *"
+                                    class="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                    e.g., "0 0 * * *" for daily at midnight UTC
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Environment -->
+            <div id="step-4" class="step-content hidden">
+                <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Environment</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            Configure environment variables and secrets for your builds.
+                        </p>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Environment Variables -->
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                                    >Environment Variables</label
+                                >
+                                <button
+                                    type="button"
+                                    onclick="addEnvVar()"
+                                    class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 flex items-center gap-1"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 4v16m8-8H4"
+                                        />
+                                    </svg>
+                                    Add Variable
+                                </button>
+                            </div>
+                            <div id="env-vars-list" class="space-y-2">
+                                <div class="flex gap-2 items-start env-var-row">
+                                    <input
+                                        type="text"
+                                        placeholder="KEY"
+                                        class="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="value"
+                                        class="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onclick="removeEnvVar(this)"
+                                        class="p-2 text-zinc-400 hover:text-red-500"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                            />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Secrets -->
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3"
+                                >Linked Secrets</label
+                            >
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
+                                Select organization secrets to expose to this pipeline.
+                            </p>
+                            <div class="space-y-2">
+                                {% for secret in available_secrets %}
+                                <label
+                                    class="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="secrets[]"
+                                        value="{{ secret.name }}"
+                                        class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <div class="flex items-center gap-2">
+                                        <svg
+                                            class="w-4 h-4 text-zinc-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                                            />
+                                        </svg>
+                                        <span class="text-sm font-mono text-zinc-900 dark:text-zinc-100"
+                                            >{{ secret.name }}</span
+                                        >
+                                    </div>
+                                </label>
+                                {% endfor %} {% if available_secrets.is_empty() %}
+                                <div
+                                    class="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 rounded-lg"
+                                >
+                                    No secrets configured.
+                                    <a href="/settings/secrets" class="text-indigo-500 hover:text-indigo-400"
+                                        >Add secrets</a
+                                    >
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Build Arguments -->
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                >Docker Build Arguments</label
+                            >
+                            <textarea
+                                name="build_args"
+                                rows="3"
+                                placeholder="ARG1=value1&#10;ARG2=value2"
+                                class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            ></textarea>
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                One per line, in KEY=value format. These are passed to docker build.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Deployment -->
+            <div id="step-5" class="step-content hidden">
+                <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Deployment</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            Configure automatic deployments after successful builds.
+                        </p>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Enable Deployment -->
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                name="deploy_enabled"
+                                id="deploy-enabled"
+                                class="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <div>
+                                <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                    Enable automatic deployment
+                                </p>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                    Deploy automatically after successful builds
+                                </p>
+                            </div>
+                        </label>
+
+                        <div id="deployment-config" class="space-y-6">
+                            <!-- Target Selection -->
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3"
+                                    >Deployment Targets</label
+                                >
+                                <div class="space-y-2">
+                                    {% for target in available_targets %}
+                                    <label
+                                        class="flex items-center gap-3 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            name="targets[]"
+                                            value="{{ target.name }}"
+                                            class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100"
+                                                    >{{ target.name }}</span
+                                                >
+                                                <span
+                                                    class="px-2 py-0.5 text-xs rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400"
+                                                    >{{ target.target_type }}</span
+                                                >
+                                            </div>
+                                            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ target.region }}</p>
+                                        </div>
+                                    </label>
+                                    {% endfor %} {% if available_targets.is_empty() %}
+                                    <div
+                                        class="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 rounded-lg"
+                                    >
+                                        No deployment targets configured.
+                                        <a href="/targets" class="text-indigo-500 hover:text-indigo-400">Add targets</a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Environment Mapping -->
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3"
+                                    >Branch to Environment Mapping</label
+                                >
+                                <div class="space-y-2">
+                                    <div class="flex gap-2 items-center">
+                                        <span class="w-24 text-sm text-zinc-600 dark:text-zinc-400">main</span>
+                                        <svg
+                                            class="w-4 h-4 text-zinc-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M17 8l4 4m0 0l-4 4m4-4H3"
+                                            />
+                                        </svg>
+                                        <select
+                                            name="branch_env_main"
+                                            class="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        >
+                                            <option value="">No deployment</option>
+                                            {% for env in available_environments %}
+                                            <option value="{{ env.name }}">{{ env.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="flex gap-2 items-center">
+                                        <span class="w-24 text-sm text-zinc-600 dark:text-zinc-400">develop</span>
+                                        <svg
+                                            class="w-4 h-4 text-zinc-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M17 8l4 4m0 0l-4 4m4-4H3"
+                                            />
+                                        </svg>
+                                        <select
+                                            name="branch_env_develop"
+                                            class="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        >
+                                            <option value="">No deployment</option>
+                                            {% for env in available_environments %}
+                                            <option value="{{ env.name }}">{{ env.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="flex gap-2 items-center">
+                                        <span class="w-24 text-sm text-zinc-600 dark:text-zinc-400">feature/*</span>
+                                        <svg
+                                            class="w-4 h-4 text-zinc-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M17 8l4 4m0 0l-4 4m4-4H3"
+                                            />
+                                        </svg>
+                                        <select
+                                            name="branch_env_feature"
+                                            class="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        >
+                                            <option value="" selected>No deployment</option>
+                                            {% for env in available_environments %}
+                                            <option value="{{ env.name }}">{{ env.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Approval Gates -->
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3"
+                                    >Approval Gates</label
+                                >
+                                <div class="space-y-2">
+                                    <label
+                                        class="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            name="approval_production"
+                                            class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <span class="text-sm text-zinc-700 dark:text-zinc-300"
+                                            >Require approval for production deployments</span
+                                        >
+                                    </label>
+                                    <label
+                                        class="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            name="approval_staging"
+                                            class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <span class="text-sm text-zinc-700 dark:text-zinc-300"
+                                            >Require approval for staging deployments</span
+                                        >
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6: Notifications -->
+            <div id="step-6" class="step-content hidden">
+                <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Notifications</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            Configure how you'll be notified about build and deployment events.
+                        </p>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Slack -->
+                        <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                        <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                            Slack Notifications
+                                        </p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                            Send notifications to a Slack channel
+                                        </p>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    name="notify_slack"
+                                    class="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                            </label>
+                            <div class="mt-4 pl-12">
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                    >Channel</label
+                                >
+                                <input
+                                    type="text"
+                                    name="slack_channel"
+                                    placeholder="#builds"
+                                    class="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                        <svg
+                                            class="w-5 h-5 text-blue-600 dark:text-blue-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                            Email Notifications
+                                        </p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                            Send email to specified addresses
+                                        </p>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    name="notify_email"
+                                    class="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                            </label>
+                            <div class="mt-4 pl-12">
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                    >Recipients</label
+                                >
+                                <input
+                                    type="text"
+                                    name="email_recipients"
+                                    placeholder="team@company.com, lead@company.com"
+                                    class="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                    Comma-separated email addresses
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Webhook -->
+                        <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg">
+                                        <svg
+                                            class="w-5 h-5 text-zinc-600 dark:text-zinc-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Webhook</p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                            POST build events to a URL
+                                        </p>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    name="notify_webhook"
+                                    class="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                            </label>
+                            <div class="mt-4 pl-12">
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                                    >Webhook URL</label
+                                >
+                                <input
+                                    type="url"
+                                    name="webhook_url"
+                                    placeholder="https://your-server.com/webhook"
+                                    class="w-full bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Notification Events -->
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3"
+                                >Notify On</label
+                            >
+                            <div class="flex flex-wrap gap-3">
+                                <label
+                                    class="flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="notify_on_success"
+                                        class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Build Success</span>
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="notify_on_failure"
+                                        checked
+                                        class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Build Failure</span>
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="notify_on_deploy"
+                                        checked
+                                        class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Deployment</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 7: Review -->
+            <div id="step-7" class="step-content hidden">
+                <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Review & Create</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            Review your pipeline configuration before creating.
+                        </p>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Summary Cards -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                                <h3
+                                    class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2"
+                                >
+                                    Source
+                                </h3>
+                                <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100" id="review-name">-</p>
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400" id="review-repo">-</p>
+                            </div>
+                            <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                                <h3
+                                    class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2"
+                                >
+                                    Build
+                                </h3>
+                                <p class="text-sm text-zinc-900 dark:text-zinc-100" id="review-stages">
+                                    4 stages configured
+                                </p>
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400" id="review-timeout">
+                                    30 minute timeout
+                                </p>
+                            </div>
+                            <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                                <h3
+                                    class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2"
+                                >
+                                    Triggers
+                                </h3>
+                                <p class="text-sm text-zinc-900 dark:text-zinc-100" id="review-triggers">Push, PR</p>
+                            </div>
+                            <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                                <h3
+                                    class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2"
+                                >
+                                    Deployment
+                                </h3>
+                                <p class="text-sm text-zinc-900 dark:text-zinc-100" id="review-deployment">
+                                    Auto-deploy enabled
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Validation -->
+                        <div
+                            class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+                        >
+                            <div class="flex items-center gap-3">
+                                <svg
+                                    class="w-5 h-5 text-green-600 dark:text-green-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-medium text-green-800 dark:text-green-200">
+                                        Configuration Valid
+                                    </p>
+                                    <p class="text-xs text-green-600 dark:text-green-400">
+                                        All required fields are configured correctly.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dry Run Button -->
+                        <div class="flex gap-3">
+                            <button
+                                type="button"
+                                onclick="dryRun()"
+                                class="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                            >
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                                        />
+                                    </svg>
+                                    Validate Configuration
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                <button
+                    type="button"
+                    id="prev-btn"
+                    onclick="prevStep()"
+                    class="hidden px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                >
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Previous
+                    </span>
+                </button>
+                <div class="flex-1"></div>
+                <button
+                    type="button"
+                    id="next-btn"
+                    onclick="nextStep()"
+                    class="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 transition-colors"
+                >
+                    <span class="flex items-center gap-2">
+                        Next
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </span>
+                </button>
+                <button
+                    type="submit"
+                    id="submit-btn"
+                    class="hidden px-6 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-500 transition-colors"
+                >
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Create Pipeline
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentStep = 1;
+    const totalSteps = 7;
+
+    function goToStep(step) {
+        if (step < 1 || step > totalSteps) return;
+
+        // Hide all steps
+        for (let i = 1; i <= totalSteps; i++) {
+            document.getElementById(`step-${i}`).classList.add("hidden");
+            const navBtn = document.getElementById(`step-nav-${i}`);
+            navBtn.querySelector("span").classList.remove("bg-indigo-600", "text-white");
+            navBtn
+                .querySelector("span")
+                .classList.add("bg-zinc-200", "dark:bg-zinc-700", "text-zinc-600", "dark:text-zinc-400");
+            navBtn.querySelectorAll("p")[0].classList.remove("text-zinc-900", "dark:text-zinc-100");
+            navBtn.querySelectorAll("p")[0].classList.add("text-zinc-600", "dark:text-zinc-400");
+        }
+
+        // Show current step
+        document.getElementById(`step-${step}`).classList.remove("hidden");
+        const currentNav = document.getElementById(`step-nav-${step}`);
+        currentNav
+            .querySelector("span")
+            .classList.remove("bg-zinc-200", "dark:bg-zinc-700", "text-zinc-600", "dark:text-zinc-400");
+        currentNav.querySelector("span").classList.add("bg-indigo-600", "text-white");
+        currentNav.querySelectorAll("p")[0].classList.remove("text-zinc-600", "dark:text-zinc-400");
+        currentNav.querySelectorAll("p")[0].classList.add("text-zinc-900", "dark:text-zinc-100");
+
+        // Mark completed steps
+        for (let i = 1; i < step; i++) {
+            const navBtn = document.getElementById(`step-nav-${i}`);
+            navBtn.querySelector("span").classList.remove("bg-zinc-200", "dark:bg-zinc-700");
+            navBtn.querySelector("span").classList.add("bg-green-600");
+            navBtn.querySelector("span").classList.remove("text-zinc-600", "dark:text-zinc-400");
+            navBtn.querySelector("span").classList.add("text-white");
+        }
+
+        // Update buttons
+        document.getElementById("prev-btn").classList.toggle("hidden", step === 1);
+        document.getElementById("next-btn").classList.toggle("hidden", step === totalSteps);
+        document.getElementById("submit-btn").classList.toggle("hidden", step !== totalSteps);
+
+        currentStep = step;
+
+        // Update review if on last step
+        if (step === totalSteps) {
+            updateReview();
+        }
+    }
+
+    function nextStep() {
+        goToStep(currentStep + 1);
+    }
+
+    function prevStep() {
+        goToStep(currentStep - 1);
+    }
+
+    function updateReview() {
+        const name = document.getElementById("pipeline-name").value || "Unnamed Pipeline";
+        const repo = document.getElementById("repository").value || "No repository selected";
+        document.getElementById("review-name").textContent = name;
+        document.getElementById("review-repo").textContent = repo;
+
+        // Update triggers
+        const triggers = [];
+        if (document.querySelector('[name="trigger_push"]').checked) triggers.push("Push");
+        if (document.querySelector('[name="trigger_pr"]').checked) triggers.push("PR");
+        if (document.querySelector('[name="trigger_tag"]').checked) triggers.push("Tags");
+        if (document.querySelector('[name="trigger_schedule"]').checked) triggers.push("Scheduled");
+        document.getElementById("review-triggers").textContent = triggers.length ? triggers.join(", ") : "Manual only";
+
+        // Update deployment
+        const deployEnabled = document.getElementById("deploy-enabled").checked;
+        document.getElementById("review-deployment").textContent = deployEnabled
+            ? "Auto-deploy enabled"
+            : "Manual deployment";
+    }
+
+    function addEnvVar() {
+        const list = document.getElementById("env-vars-list");
+        const row = document.createElement("div");
+        row.className = "flex gap-2 items-start env-var-row";
+        row.innerHTML = `
+        <input type="text" placeholder="KEY" class="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+        <input type="text" placeholder="value" class="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+        <button type="button" onclick="removeEnvVar(this)" class="p-2 text-zinc-400 hover:text-red-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </button>
+    `;
+        list.appendChild(row);
+    }
+
+    function removeEnvVar(btn) {
+        btn.closest(".env-var-row").remove();
+    }
+
+    function dryRun() {
+        alert("Configuration validated successfully!");
+    }
+
+    // Form submission
+    document.getElementById("pipeline-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        // TODO: Collect form data and POST to API
+        alert("Pipeline created successfully!");
+        window.location.href = "/pipelines";
+    });
+</script>
+{% endblock %}
