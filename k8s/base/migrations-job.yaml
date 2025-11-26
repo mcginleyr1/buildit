@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrations
+  namespace: buildit
+  labels:
+    app.kubernetes.io/name: migrations
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: buildit
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: migrations
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres -U buildit; do
+                echo "Waiting for postgres..."
+                sleep 2
+              done
+              echo "Postgres is ready"
+      containers:
+        - name: migrations
+          image: buildit-migrations:dev
+          imagePullPolicy: Never
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: DATABASE_URL

@@ -1,0 +1,19 @@
+// Simple pipeline example
+pipeline "hello-world"
+
+stage "test" {
+    image "rust:1.75"
+    run "echo 'Running tests'"
+    run "cargo test"
+}
+
+stage "build" needs="test" {
+    image "rust:1.75"
+    run "cargo build --release"
+    artifacts "target/release/myapp"
+}
+
+stage "deploy" needs="build" {
+    image "alpine:latest"
+    run "echo 'Deploying...'"
+}

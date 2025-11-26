@@ -8,6 +8,7 @@ rust-version.workspace = true
 
 [dependencies]
 buildit-core.workspace = true
+buildit-config.workspace = true
 buildit-db.workspace = true
 buildit-executor.workspace = true
 async-trait.workspace = true

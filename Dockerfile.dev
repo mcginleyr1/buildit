@@ -1,0 +1,22 @@
+# Development Dockerfile with cargo-watch for live reload
+FROM rust:1.83-alpine
+
+RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconfig
+
+# Install cargo-watch for live reload
+RUN cargo install cargo-watch
+
+WORKDIR /app
+
+# Copy everything
+COPY . .
+
+# Build once to cache dependencies
+RUN cargo build -p buildit-api
+
+EXPOSE 3000
+
+ENV RUST_LOG=info,buildit_api=debug,buildit_scheduler=debug
+
+# Use cargo-watch to rebuild and restart on changes
+CMD ["cargo", "watch", "-x", "run -p buildit-api"]

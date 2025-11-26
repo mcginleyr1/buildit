@@ -27,7 +27,11 @@ async-trait = "0.1"
 # Web framework
 axum = { version = "0.8", features = ["ws", "macros"] }
 tower = "0.5"
-tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip", "fs"] }
+
+# Templating
+askama = "0.14"
+askama_axum = "0.4"
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -42,6 +46,9 @@ sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres",
 # Kubernetes
 kube = { version = "0.98", features = ["runtime", "derive", "client"] }
 k8s-openapi = { version = "0.24", features = ["latest"] }
+
+# Docker
+bollard = "0.18"
 
 # CLI
 clap = { version = "4", features = ["derive", "env"] }

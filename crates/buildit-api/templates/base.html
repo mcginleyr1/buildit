@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-zinc-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BuildIt{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="https://unpkg.com/htmx-ext-ws@2.0.2/ws.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        zinc: {
+                            850: '#1f1f23',
+                            950: '#0a0a0b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
+        .log-line { font-size: 13px; line-height: 1.5; }
+    </style>
+</head>
+<body class="h-full text-zinc-100">
+    <div class="min-h-full">
+        <!-- Navigation -->
+        <nav class="bg-zinc-900 border-b border-zinc-800">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="flex h-14 items-center justify-between">
+                    <div class="flex items-center gap-8">
+                        <a href="/" class="flex items-center gap-2">
+                            <span class="text-xl font-bold text-indigo-400">BuildIt</span>
+                        </a>
+                        <div class="flex gap-4">
+                            <a href="/" class="text-sm text-zinc-300 hover:text-white px-3 py-2 rounded-md {% block nav_pipelines %}{% endblock %}">Pipelines</a>
+                            <a href="/deployments" class="text-sm text-zinc-300 hover:text-white px-3 py-2 rounded-md {% block nav_deployments %}{% endblock %}">Deployments</a>
+                            <a href="/settings" class="text-sm text-zinc-300 hover:text-white px-3 py-2 rounded-md {% block nav_settings %}{% endblock %}">Settings</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

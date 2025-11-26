@@ -2,6 +2,16 @@
 
 A Rust-based CI/CD platform with container-native builds and multi-target deployments.
 
+## Quick Start
+
+```bash
+# Run a pipeline locally with Docker
+cargo run -p buildit-cli -- run examples/echo.kdl
+
+# Validate a pipeline config
+cargo run -p buildit-cli -- validate examples/simple.kdl
+```
+
 ## Build & Run
 
 ```bash
@@ -27,21 +37,43 @@ buildit/
 │   ├── buildit-db/         # PostgreSQL database layer
 │   ├── buildit-deployer/   # Deployment backends (K8s, Fly.io)
 │   ├── buildit-executor/   # Job execution (K8s, Docker)
-│   └── buildit-scheduler/  # Job queue & worker
+│   └── buildit-scheduler/  # Job queue, worker & orchestrator
+├── examples/               # Example pipeline configs
+├── k8s/                    # Kubernetes manifests
 ├── Cargo.toml              # Workspace definition
-└── PLAN.md                 # Full project roadmap
+├── PLAN.md                 # Full project roadmap
+└── IMPLEMENTATION.md       # Implementation plan
 ```
 
-## Core Crates
+## Pipeline Configuration (KDL)
 
-- **buildit-core**: Domain types (`ResourceId`, `Pipeline`, `Stage`), traits (`Executor`, `Deployer`, `ArtifactStore`, `SecretStore`)
-- **buildit-config**: KDL parsing for pipeline definitions and system config
-- **buildit-db**: PostgreSQL with SQLx, repository pattern
-- **buildit-executor**: Run CI jobs in K8s pods or local Docker
-- **buildit-deployer**: Deploy to K8s, Fly.io, Cloud Run, Lambda
-- **buildit-scheduler**: Job queue using PostgreSQL SKIP LOCKED
-- **buildit-api**: Axum HTTP API + WebSocket for real-time updates
-- **buildit-cli**: Command-line interface
+```kdl
+pipeline "my-app"
+
+stage "test" {
+    image "rust:1.75"
+    run "cargo test"
+}
+
+stage "build" needs="test" {
+    image "rust:1.75"
+    run "cargo build --release"
+}
+```
+
+## Local Development
+
+PostgreSQL runs in K8s (OrbStack):
+```bash
+# Start port forward (if not already running)
+kubectl -n buildit port-forward svc/postgres 5432:5432 &
+
+# Connection string
+DATABASE_URL=postgres://buildit:buildit-dev-password@127.0.0.1:5432/buildit
+
+# Run migrations
+cd crates/buildit-db && sqlx migrate run
+```
 
 ## Environment Notes
 
@@ -49,19 +81,14 @@ buildit/
 - Use `eza` instead of `ls` for directory listings
 - Use `pls` for privileged commands
 - Kubernetes available via OrbStack (`kubectl` configured)
-- PostgreSQL should run in K8s for local dev
-
-## Configuration
-
-Pipeline configs use KDL format (see PLAN.md for examples):
-- Pipeline definitions: `buildit.kdl`
-- System config: KDL-based
+- PostgreSQL runs in K8s namespace `buildit`
 
 ## Key Dependencies
 
 - **axum**: Web framework
-- **sqlx**: Async PostgreSQL
+- **sqlx**: Async PostgreSQL  
 - **kube-rs**: Kubernetes client
+- **bollard**: Docker API
 - **kdl**: Configuration format
 - **tokio**: Async runtime
 - **clap**: CLI parsing

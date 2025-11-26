@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Pipelines - BuildIt{% endblock %}
+{% block nav_pipelines %}bg-zinc-800{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-semibold">Pipelines</h1>
+        <button onclick="document.getElementById('new-pipeline-modal').classList.remove('hidden')"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium">
+            New Pipeline
+        </button>
+    </div>
+
+    <!-- Pipeline list -->
+    <div class="bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden">
+        <table class="min-w-full divide-y divide-zinc-800">
+            <thead class="bg-zinc-850">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Pipeline</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Repository</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Last Run</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800">
+                {% for pipeline in pipelines %}
+                <tr class="hover:bg-zinc-850">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <a href="/pipelines/{{ pipeline.id }}" class="text-indigo-400 hover:text-indigo-300 font-medium">
+                            {{ pipeline.name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-400 mono">
+                        {{ pipeline.repository }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-400">
+                        {% if pipeline.last_run_number > 0 %}
+                        <a href="/pipelines/{{ pipeline.id }}/runs/{{ pipeline.last_run_id }}" class="hover:text-zinc-200">
+                            #{{ pipeline.last_run_number }}
+                        </a>
+                        {% else %}
+                        <span class="text-zinc-600">No runs</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if pipeline.last_run_status == "succeeded" %}
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-900/50 text-green-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                            Passed
+                        </span>
+                        {% elif pipeline.last_run_status == "failed" %}
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-900/50 text-red-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                            Failed
+                        </span>
+                        {% elif pipeline.last_run_status == "running" %}
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-900/50 text-blue-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+                            Running
+                        </span>
+                        {% else %}
+                        <span class="text-zinc-600">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <button hx-post="/api/v1/pipelines/{{ pipeline.id }}/runs"
+                                hx-swap="none"
+                                hx-on::after-request="window.location.reload()"
+                                class="text-indigo-400 hover:text-indigo-300">
+                            Run
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if pipelines.is_empty() %}
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-zinc-500">
+                        No pipelines yet. Create one to get started.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- New Pipeline Modal -->
+<div id="new-pipeline-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-zinc-900 rounded-lg border border-zinc-800 p-6 w-full max-w-md">
+        <h2 class="text-lg font-semibold mb-4">Create Pipeline</h2>
+        <form hx-post="/api/v1/pipelines" hx-on::after-request="window.location.reload()">
+            <input type="hidden" name="tenant_id" value="{{ tenant_id }}">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-1">Name</label>
+                    <input type="text" name="name" required
+                           class="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-400 mb-1">Repository</label>
+                    <input type="text" name="repository" placeholder="https://github.com/org/repo" required
+                           class="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button"
+                        onclick="document.getElementById('new-pipeline-modal').classList.add('hidden')"
+                        class="px-4 py-2 text-sm text-zinc-400 hover:text-white">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium">
+                    Create
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,6 +1,7 @@
 //! BuildIt CLI tool.
 
 use clap::{Parser, Subcommand};
+use tracing_subscriber::EnvFilter;
 
 mod commands;
 
@@ -12,12 +13,26 @@ struct Cli {
     #[arg(long, env = "BUILDIT_API_URL", default_value = "http://localhost:3000")]
     api_url: String,
 
+    /// Enable verbose logging
+    #[arg(short, long)]
+    verbose: bool,
+
     #[command(subcommand)]
     command: Commands,
 }
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Run a pipeline locally using Docker
+    Run {
+        /// Path to the pipeline configuration file
+        #[arg(default_value = "buildit.kdl")]
+        config: String,
+
+        /// Only run specific stages
+        #[arg(long)]
+        stage: Option<Vec<String>>,
+    },
     /// Authenticate with the API server
     Login {
         /// Authentication token
@@ -110,7 +125,23 @@ enum RunCommands {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    // Initialize tracing
+    let filter = if cli.verbose {
+        EnvFilter::new("buildit=debug,info")
+    } else {
+        EnvFilter::new("buildit=info,warn")
+    };
+
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_target(false)
+        .without_time()
+        .init();
+
     match cli.command {
+        Commands::Run { config, stage } => {
+            commands::run_local(&config, stage).await?;
+        }
         Commands::Login { token } => {
             commands::login(&cli.api_url, token).await?;
         }

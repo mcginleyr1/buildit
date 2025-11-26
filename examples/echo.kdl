@@ -1,0 +1,15 @@
+// Simple echo pipeline for testing
+pipeline "echo-test"
+
+stage "hello" {
+    image "alpine:latest"
+    run "echo 'Hello from BuildIt!'"
+    run "echo 'Current date:' && date"
+}
+
+stage "world" needs="hello" {
+    image "alpine:latest"
+    run "echo 'World stage running'"
+    run "sleep 1"
+    run "echo 'Done!'"
+}

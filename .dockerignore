@@ -1,0 +1,24 @@
+# Build artifacts
+target/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Documentation
+*.md
+!crates/*/README.md
+
+# Local dev files
+.env
+.env.*
+Tiltfile
+
+# K8s local
+k8s/dev/
