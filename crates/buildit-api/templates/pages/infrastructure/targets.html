@@ -1,0 +1,121 @@
+{% extends "base.html" %} {% block title %}Targets - BuildIt{% endblock %} {% block nav_targets %}text-zinc-900
+bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %} {% block breadcrumb %}
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">Targets</span>
+{% endblock %} {% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Deployment Targets</h1>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Kubernetes clusters, Fly.io apps, and Cloud Run services
+            </p>
+        </div>
+        <button
+            class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Target
+        </button>
+    </div>
+
+    <!-- Targets grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for target in targets %}
+        <div
+            class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-5 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+        >
+            <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                    {% if target.target_type == "kubernetes" %}
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M10.204 14.35l.007.01-.999 2.413a5.171 5.171 0 01-2.075-2.597l2.578-.437.004.005a.44.44 0 01.485.606zm-.833-2.129a.44.44 0 00.173-.756l.002-.011L7.585 9.7a5.143 5.143 0 00-.73 3.255l2.514-.725.002-.009zm1.145-1.98a.44.44 0 00.699-.337l-.01-.009.15-2.62a5.145 5.145 0 00-3.01 1.442l2.164 1.533.007-.009zm2.369-.337a.44.44 0 00.7.336l.008.01 2.164-1.533a5.145 5.145 0 00-3.01-1.442l.15 2.62-.012.009zm1.49 1.674a.44.44 0 00.174.756l.002.009 2.514.725a5.143 5.143 0 00-.73-3.255l-1.96 1.754v.011zm-.296 2.597a.44.44 0 00.485-.606l.004-.005 2.578.437a5.171 5.171 0 01-2.075 2.597l-.999-2.413.007-.01z"
+                            />
+                            <path
+                                d="M12 17.347a5.347 5.347 0 110-10.694 5.347 5.347 0 010 10.694zm0-12.694a7.347 7.347 0 100 14.694 7.347 7.347 0 000-14.694z"
+                            />
+                        </svg>
+                    </div>
+                    {% else if target.target_type == "fly" %}
+                    <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-purple-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
+                            />
+                        </svg>
+                    </div>
+                    {% else %}
+                    <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
+                            />
+                        </svg>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ target.name }}</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ target.target_type }}</p>
+                    </div>
+                </div>
+                {% if target.status == "connected" %}
+                <span
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400"
+                >
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    Connected
+                </span>
+                {% else %}
+                <span
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400"
+                >
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                    Disconnected
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-zinc-500 dark:text-zinc-400">Region</span>
+                    <span class="text-zinc-600 dark:text-zinc-300">{{ target.region }}</span>
+                </div>
+                <div class="mt-2 flex items-center justify-between text-xs">
+                    <span class="text-zinc-500 dark:text-zinc-400">Environments</span>
+                    <span class="text-zinc-600 dark:text-zinc-300">{{ target.environment_count }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if !has_targets %}
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-12 text-center">
+        <svg
+            class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+        >
+            <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1"
+                d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"
+            />
+        </svg>
+        <h3 class="mt-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">No deployment targets</h3>
+        <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+            Add a Kubernetes cluster, Fly.io org, or Cloud Run project to get started.
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -109,7 +109,7 @@ bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %} {% block breadcrum
                 </div>
             </div>
             <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {% if recent_runs.is_empty() %}
+                {% if !has_recent_runs %}
                 <div class="px-5 py-12 text-center">
                     <svg
                         class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600"

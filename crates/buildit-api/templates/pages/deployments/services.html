@@ -1,0 +1,110 @@
+{% extends "base.html" %} {% block title %}Services - BuildIt{% endblock %} {% block nav_services %}text-zinc-900
+bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %} {% block breadcrumb %}
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">Services</span>
+{% endblock %} {% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Services</h1>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Deployed applications across all environments</p>
+        </div>
+        <button
+            class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Service
+        </button>
+    </div>
+
+    <!-- Services grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for service in services %}
+        <div
+            class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-5 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+        >
+            <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                            />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ service.name }}</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ service.image }}</p>
+                    </div>
+                </div>
+                {% if service.status == "healthy" %}
+                <span
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400"
+                >
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    Healthy
+                </span>
+                {% else if service.status == "degraded" %}
+                <span
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                >
+                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                    Degraded
+                </span>
+                {% else %}
+                <span
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400"
+                >
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                    Down
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-zinc-500 dark:text-zinc-400">Environments</span>
+                    <div class="flex items-center gap-1">
+                        {% for env in service.environments %}
+                        <span
+                            class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                            >{{ env }}</span
+                        >
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="mt-2 flex items-center justify-between text-xs">
+                    <span class="text-zinc-500 dark:text-zinc-400">Last deployed</span>
+                    <span class="text-zinc-600 dark:text-zinc-300">{{ service.last_deploy_ago }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if !has_services %}
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-12 text-center">
+        <svg
+            class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+        >
+            <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1"
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+            />
+        </svg>
+        <h3 class="mt-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">No services</h3>
+        <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Get started by adding a service to deploy.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

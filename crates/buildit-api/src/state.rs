@@ -1,5 +1,6 @@
 //! Application state.
 
+use buildit_db::PgDeploymentRepo;
 use buildit_db::PgPipelineRepo;
 use buildit_db::PgTenantRepo;
 use buildit_executor::LocalDockerExecutor;
@@ -14,6 +15,7 @@ pub struct AppState {
     pub pool: PgPool,
     pub tenant_repo: Arc<PgTenantRepo>,
     pub pipeline_repo: Arc<PgPipelineRepo>,
+    pub deployment_repo: Arc<PgDeploymentRepo>,
     pub orchestrator: Option<Arc<PipelineOrchestrator>>,
 }
 
@@ -21,6 +23,7 @@ impl AppState {
     pub fn new(pool: PgPool) -> Self {
         let tenant_repo = Arc::new(PgTenantRepo::new(pool.clone()));
         let pipeline_repo = Arc::new(PgPipelineRepo::new(pool.clone()));
+        let deployment_repo = Arc::new(PgDeploymentRepo::new(pool.clone()));
 
         // Try to create executor and orchestrator - may fail in K8s without Docker socket
         let orchestrator = match LocalDockerExecutor::new() {
@@ -41,6 +44,7 @@ impl AppState {
             pool,
             tenant_repo,
             pipeline_repo,
+            deployment_repo,
             orchestrator,
         }
     }
