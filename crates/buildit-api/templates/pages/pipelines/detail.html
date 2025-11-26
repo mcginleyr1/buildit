@@ -1,0 +1,185 @@
+{% extends "base.html" %} {% block title %}{{ pipeline.name }} - BuildIt{% endblock %} {% block nav_pipelines
+%}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %} {% block breadcrumb %}
+<a href="/pipelines" class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300">Pipelines</a>
+<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+</svg>
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">{{ pipeline.name }}</span>
+{% endblock %} {% block header_actions %}
+<button
+    hx-post="/api/v1/pipelines/{{ pipeline.id }}/runs"
+    hx-swap="none"
+    hx-on::after-request="window.location.reload()"
+    class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+        />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    Run Pipeline
+</button>
+{% endblock %} {% block content %}
+<div class="space-y-6">
+    <!-- Pipeline header -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
+        <div class="flex items-start justify-between">
+            <div>
+                <h1 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{{ pipeline.name }}</h1>
+                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 font-mono">{{ pipeline.repository }}</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mt-6 border-b border-zinc-200 dark:border-zinc-800">
+            <nav class="-mb-px flex gap-6">
+                <button
+                    class="pb-3 px-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400"
+                >
+                    Runs
+                </button>
+                <button
+                    class="pb-3 px-1 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 border-b-2 border-transparent"
+                >
+                    Configuration
+                </button>
+                <button
+                    class="pb-3 px-1 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 border-b-2 border-transparent"
+                >
+                    Settings
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Runs list -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <div class="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+            <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Recent Runs</h2>
+        </div>
+
+        {% if !has_runs %}
+        <div class="px-6 py-16 text-center">
+            <svg
+                class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+            >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <h3 class="mt-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">No runs yet</h3>
+            <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Trigger a run to get started.</p>
+            <button
+                hx-post="/api/v1/pipelines/{{ pipeline.id }}/runs"
+                hx-swap="none"
+                hx-on::after-request="window.location.reload()"
+                class="mt-6 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                    />
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                </svg>
+                Run Now
+            </button>
+        </div>
+        {% else %}
+        <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
+            {% for run in runs %}
+            <a
+                href="/pipelines/{{ pipeline.id }}/runs/{{ run.id }}"
+                class="flex items-center gap-4 px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+            >
+                <!-- Status -->
+                {% if run.status == "succeeded" %}
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                {% else if run.status == "failed" %}
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
+                </div>
+                {% else if run.status == "running" %}
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <svg
+                        class="w-4 h-4 text-blue-500 animate-spin"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                    </svg>
+                </div>
+                {% else %}
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-500/10 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                    </svg>
+                </div>
+                {% endif %}
+
+                <!-- Run info -->
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">#{{ run.number }}</span>
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ run.branch }}</span>
+                        {% if !run.commit_sha.is_empty() %}
+                        <code
+                            class="text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded"
+                            >{{ run.commit_sha }}</code
+                        >
+                        {% endif %}
+                    </div>
+                    <p class="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400 truncate">{{ run.commit_message }}</p>
+                </div>
+
+                <!-- Time and duration -->
+                <div class="flex-shrink-0 text-right">
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ run.created_at }}</p>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ run.duration }}</p>
+                </div>
+
+                <!-- Arrow -->
+                <svg class="flex-shrink-0 w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+# Clorinde configuration
+# See: https://github.com/halcyonnouveau/clorinde
+
+queries = "queries"
+destination = "src/generated"
+sync = false
+async = true
+
+[types]
+# Custom type mappings if needed

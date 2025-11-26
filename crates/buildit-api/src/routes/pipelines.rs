@@ -171,41 +171,45 @@ async fn trigger_run(
         caches: vec![],
     };
 
-    // Execute pipeline in background
+    // Execute pipeline in background (if orchestrator is available)
     let orchestrator = state.orchestrator.clone();
     let pipeline_repo = state.pipeline_repo.clone();
     let run_id = ResourceId::from_uuid(run.id);
 
-    tokio::spawn(async move {
-        tracing::info!(run_id = %run_id, "Starting pipeline execution");
+    if let Some(orchestrator) = orchestrator {
+        tokio::spawn(async move {
+            tracing::info!(run_id = %run_id, "Starting pipeline execution");
 
-        // Set run status to running
-        if let Err(e) = pipeline_repo.update_run_status(run_id, "running").await {
-            tracing::error!(error = %e, "Failed to update run status to running");
-            return;
-        }
+            // Set run status to running
+            if let Err(e) = pipeline_repo.update_run_status(run_id, "running").await {
+                tracing::error!(error = %e, "Failed to update run status to running");
+                return;
+            }
 
-        // Build environment
-        let mut env = HashMap::new();
-        env.insert("CI".to_string(), "true".to_string());
-        env.insert("BUILDIT".to_string(), "true".to_string());
+            // Build environment
+            let mut env = HashMap::new();
+            env.insert("CI".to_string(), "true".to_string());
+            env.insert("BUILDIT".to_string(), "true".to_string());
 
-        // Execute
-        tracing::info!(run_id = %run_id, "Executing pipeline with {} stages", pipeline.stages.len());
-        let (_event_rx, result) = orchestrator.execute(&pipeline, env).await;
+            // Execute
+            tracing::info!(run_id = %run_id, "Executing pipeline with {} stages", pipeline.stages.len());
+            let (_event_rx, result) = orchestrator.execute(&pipeline, env).await;
 
-        // Update final status
-        let status = if result.success {
-            tracing::info!(run_id = %run_id, "Pipeline succeeded");
-            "succeeded"
-        } else {
-            tracing::warn!(run_id = %run_id, "Pipeline failed");
-            "failed"
-        };
-        if let Err(e) = pipeline_repo.update_run_status(run_id, status).await {
-            tracing::error!(error = %e, "Failed to update run status to {}", status);
-        }
-    });
+            // Update final status
+            let status = if result.success {
+                tracing::info!(run_id = %run_id, "Pipeline succeeded");
+                "succeeded"
+            } else {
+                tracing::warn!(run_id = %run_id, "Pipeline failed");
+                "failed"
+            };
+            if let Err(e) = pipeline_repo.update_run_status(run_id, status).await {
+                tracing::error!(error = %e, "Failed to update run status to {}", status);
+            }
+        });
+    } else {
+        tracing::warn!(run_id = %run_id, "Orchestrator unavailable - run created but not executed");
+    }
 
     Ok(Json(RunResponse {
         id: run.id.to_string(),

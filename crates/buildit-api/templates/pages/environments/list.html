@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Environments - BuildIt{% endblock %}
+
+{% block nav_environments %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">Environments</span>
+{% endblock %}
+
+{% block header_actions %}
+<button class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    New Environment
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Environment cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for env in environments %}
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors overflow-hidden">
+            <div class="p-5">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ env.name }}</h3>
+                        <div class="mt-1 flex items-center gap-2">
+                            {% if env.health_status == "healthy" %}
+                            <span class="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                All healthy
+                            </span>
+                            {% else if env.health_status == "degraded" %}
+                            <span class="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                Degraded
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                Unhealthy
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if env.target_type == "kubernetes" %}
+                    <div class="p-2 bg-blue-500/10 rounded-lg">
+                        <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M10.204 14.35l.007.01-.999 2.413a5.171 5.171 0 01-2.075-2.597l2.578-.437.489.611zm4.159.01l-.005.01 1.001 2.413a5.172 5.172 0 002.073-2.597l-2.578-.437-.491.611zm-1.992-1.385l-.008-.01-.997 2.413c.67.278 1.404.431 2.172.431s1.502-.153 2.172-.431l-.997-2.413-.008.01a2.566 2.566 0 01-2.334 0zm-4.24-3.606l-.01.006-2.412-.998a5.15 5.15 0 00-.431 2.172c0 .768.153 1.502.431 2.172l2.412-.998-.006-.01a2.563 2.563 0 010-2.344zm8.73.01l.006-.01 2.412.998a5.15 5.15 0 00.431-2.172 5.15 5.15 0 00-.431-2.172l-2.412.998.006.01a2.563 2.563 0 010 2.344zM12 6.042c-.768 0-1.502.153-2.172.431l.998 2.412.01-.006a2.566 2.566 0 012.328 0l.01.006.998-2.412A5.153 5.153 0 0012 6.042zm0 3.312a2.65 2.65 0 00-2.646 2.646A2.65 2.65 0 0012 14.646 2.65 2.65 0 0014.646 12 2.65 2.65 0 0012 9.354z"/>
+                        </svg>
+                    </div>
+                    {% else if env.target_type == "fly" %}
+                    <div class="p-2 bg-purple-500/10 rounded-lg">
+                        <span class="text-sm font-bold text-purple-500">FLY</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="mt-4 space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-zinc-500 dark:text-zinc-400">Services</span>
+                        <span class="text-zinc-900 dark:text-zinc-100 font-medium">{{ env.service_count }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-zinc-500 dark:text-zinc-400">Target</span>
+                        <span class="text-zinc-900 dark:text-zinc-100 font-medium">{{ env.target_name }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-zinc-500 dark:text-zinc-400">Last deploy</span>
+                        <span class="text-zinc-900 dark:text-zinc-100">{{ env.last_deploy_ago }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-5 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-800">
+                <a href="/environments/{{ env.name }}" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
+                    View details →
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if environments.is_empty() %}
+        <!-- Empty state -->
+        <div class="col-span-full bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 px-6 py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-zinc-900 dark:text-zinc-100">No environments yet</h3>
+            <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Create your first environment to start deploying.</p>
+            <button class="mt-6 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Create Environment
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

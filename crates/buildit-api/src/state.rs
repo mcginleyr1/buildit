@@ -6,6 +6,7 @@ use buildit_executor::LocalDockerExecutor;
 use buildit_scheduler::PipelineOrchestrator;
 use sqlx::PgPool;
 use std::sync::Arc;
+use tracing::{info, warn};
 
 /// Shared application state.
 #[derive(Clone)]
@@ -13,7 +14,7 @@ pub struct AppState {
     pub pool: PgPool,
     pub tenant_repo: Arc<PgTenantRepo>,
     pub pipeline_repo: Arc<PgPipelineRepo>,
-    pub orchestrator: Arc<PipelineOrchestrator>,
+    pub orchestrator: Option<Arc<PipelineOrchestrator>>,
 }
 
 impl AppState {
@@ -21,9 +22,20 @@ impl AppState {
         let tenant_repo = Arc::new(PgTenantRepo::new(pool.clone()));
         let pipeline_repo = Arc::new(PgPipelineRepo::new(pool.clone()));
 
-        // Create executor and orchestrator
-        let executor = LocalDockerExecutor::new().expect("Failed to connect to Docker");
-        let orchestrator = Arc::new(PipelineOrchestrator::new(Arc::new(executor)));
+        // Try to create executor and orchestrator - may fail in K8s without Docker socket
+        let orchestrator = match LocalDockerExecutor::new() {
+            Ok(executor) => {
+                info!("Docker executor initialized successfully");
+                Some(Arc::new(PipelineOrchestrator::new(Arc::new(executor))))
+            }
+            Err(e) => {
+                warn!(
+                    "Docker executor unavailable: {}. Pipeline execution disabled.",
+                    e
+                );
+                None
+            }
+        };
 
         Self {
             pool,

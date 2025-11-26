@@ -6,6 +6,7 @@ members = [
     "crates/buildit-config",
     "crates/buildit-core",
     "crates/buildit-db",
+    "crates/buildit-db-queries",
     "crates/buildit-deployer",
     "crates/buildit-executor",
     "crates/buildit-scheduler",
@@ -30,7 +31,7 @@ tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip", "fs"] }
 
 # Templating
-askama = "0.14"
+askama = "0.12"
 askama_axum = "0.4"
 
 # Serialization
@@ -42,6 +43,8 @@ kdl = "6.5"
 
 # Database
 sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "json"] }
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4", "with-uuid-1", "with-serde_json-1"] }
+deadpool-postgres = "0.14"
 
 # Kubernetes
 kube = { version = "0.98", features = ["runtime", "derive", "client"] }
@@ -73,6 +76,7 @@ derive_more = { version = "1", features = ["display", "from"] }
 buildit-core = { path = "crates/buildit-core" }
 buildit-config = { path = "crates/buildit-config" }
 buildit-db = { path = "crates/buildit-db" }
+buildit-db-queries = { path = "crates/buildit-db-queries" }
 buildit-executor = { path = "crates/buildit-executor" }
 buildit-deployer = { path = "crates/buildit-deployer" }
 buildit-scheduler = { path = "crates/buildit-scheduler" }

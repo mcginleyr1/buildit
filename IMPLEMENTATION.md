@@ -1,153 +1,217 @@
-# BuildIt Implementation Plan
+# BuildIt Implementation Status
 
-Step-by-step plan to get BuildIt to a working MVP where we can run a pipeline locally.
+Current implementation status and next steps for the BuildIt CI/CD platform.
 
-## Phase 1: Database Foundation
+## Completed
 
-### 1.1 PostgreSQL Setup in Kubernetes
-- [ ] Create K8s namespace `buildit`
-- [ ] Deploy PostgreSQL via Helm or manifest
-- [ ] Create `buildit` database and user
-- [ ] Test connection from local machine
+### Phase 1: Database Foundation
 
-### 1.2 Database Migrations
-- [ ] Create `migrations/` in buildit-db with SQLx migrations
-- [ ] `001_tenants.sql` - tenants table
-- [ ] `002_pipelines.sql` - pipelines and pipeline_runs tables
-- [ ] `003_job_queue.sql` - job_queue table for scheduler
-- [ ] `004_stages.sql` - stage_results table
-- [ ] Run migrations and verify schema
+- [x] Create K8s namespace `buildit`
+- [x] Deploy PostgreSQL via K8s manifest
+- [x] Create `buildit` database and user
+- [x] Database migrations with psql-based runner
+- [x] `001_tenants.sql` - tenants table
+- [x] `002_pipelines.sql` - pipelines and pipeline_runs tables
+- [x] `003_job_queue.sql` - job_queue table for scheduler
+- [x] `004_stages.sql` - stages and stage_results tables
 
-## Phase 2: KDL Configuration Parser
+### Phase 2: Core Domain Types
 
-### 2.1 Pipeline Config Parsing
-- [ ] Define KDL schema for pipelines
-- [ ] Parse `pipeline` node (name, triggers)
-- [ ] Parse `stage` nodes (name, image, commands, needs)
-- [ ] Parse `cache` nodes
-- [ ] Validate DAG (no cycles, valid dependencies)
-- [ ] Variable interpolation (`{git.sha}`, `{branch}`)
+- [x] Define core types in `buildit-core`:
+  - `ResourceId`, `Pipeline`, `Stage`, `StageAction`
+  - `PipelineRun`, `StageResult`, `PipelineStatus`
+  - `Trigger`, `TriggerInfo`, `GitInfo`
+  - `JobSpec`, `JobHandle`, `JobResult`, `JobStatus`
+  - `DeploymentSpec`, `DeploymentHandle`, `DeploymentState`
 
-### 2.2 System Config Parsing
-- [ ] Parse executor configuration
-- [ ] Parse deployer configuration
-- [ ] Parse artifact/secret store config
+### Phase 3: Local Executor (Docker)
 
-## Phase 3: Local Executor (Docker)
+- [x] Add `bollard` crate for Docker API
+- [x] Implement `LocalDockerExecutor`:
+  - [x] `spawn()` - create and start container
+  - [x] `logs()` - stream container logs
+  - [x] `status()` - check container state
+  - [x] `wait()` - wait for container exit
+  - [x] `cancel()` - stop and remove container
+- [x] Volume & workspace handling
+- [x] Environment variable injection
 
-### 3.1 Docker Executor Implementation
-- [ ] Add `bollard` crate for Docker API
-- [ ] Implement `LocalDockerExecutor`
-- [ ] `spawn()` - create and start container
-- [ ] `logs()` - stream container logs
-- [ ] `status()` - check container state
-- [ ] `wait()` - wait for container exit
-- [ ] `cancel()` - stop and remove container
+### Phase 4: Pipeline Orchestrator
 
-### 3.2 Volume & Workspace Handling
-- [ ] Mount workspace directory into container
-- [ ] Handle artifact collection from container
-- [ ] Environment variable injection
+- [x] Build execution DAG from pipeline stages
+- [x] Track stage states (pending, running, completed, failed)
+- [x] Execute stages respecting dependencies
+- [x] `PipelineOrchestrator` in buildit-scheduler
+- [x] Event channel for real-time updates
 
-## Phase 4: Pipeline Orchestrator
+### Phase 5: API Server
 
-### 4.1 DAG Execution Engine
-- [ ] Build execution DAG from parsed pipeline
-- [ ] Topological sort for execution order
-- [ ] Track stage states (pending, running, completed, failed)
-- [ ] Execute stages respecting dependencies
-- [ ] Handle parallel stage execution
+- [x] Create `main.rs` with server startup
+- [x] Database pool initialization (SQLx)
+- [x] Axum server with graceful shutdown
+- [x] Core API endpoints:
+  - [x] `GET /api/v1/tenants` - list tenants
+  - [x] `POST /api/v1/tenants` - create tenant
+  - [x] `GET /api/v1/pipelines` - list pipelines
+  - [x] `POST /api/v1/pipelines` - create pipeline
+  - [x] `GET /api/v1/pipelines/{id}` - get pipeline
+  - [x] `POST /api/v1/pipelines/{id}/runs` - trigger run
+  - [x] `GET /api/v1/pipelines/{id}/runs` - list runs
+- [x] WebSocket `/ws` endpoint for real-time updates
+- [x] Health check endpoints (`/health`, `/health/ready`)
 
-### 4.2 Pipeline Runner
-- [ ] Create `PipelineRunner` in buildit-scheduler
-- [ ] Load pipeline config from file or database
-- [ ] Create pipeline run record
-- [ ] Execute stages via executor
-- [ ] Update stage/run status in database
-- [ ] Collect and store logs
+### Phase 6: User Interface
 
-## Phase 5: API Server Runnable
+- [x] Askama templates setup
+- [x] Tailwind CSS via CDN
+- [x] Base layout with navigation
+- [x] Dark/light theme toggle with localStorage persistence
+- [x] Pipeline list page (`/`)
+- [x] Pipeline detail page (`/pipelines/{id}`)
+- [x] Run detail page with log viewer (`/pipelines/{id}/runs/{run_id}`)
+- [x] New pipeline modal
+- [x] htmx integration for dynamic updates
+- [x] WebSocket extension for live updates
 
-### 5.1 Server Binary
-- [ ] Create `main.rs` in buildit-api with server startup
-- [ ] Database pool initialization
-- [ ] Load system configuration
-- [ ] Start Axum server
-- [ ] Graceful shutdown handling
+### Phase 7: CLI Tool
 
-### 5.2 Core API Endpoints
-- [ ] `POST /api/v1/pipelines/{id}/trigger` - trigger a run
-- [ ] `GET /api/v1/runs/{id}` - get run details with stages
-- [ ] `GET /api/v1/runs/{id}/logs` - get run logs
-- [ ] WebSocket `/ws` - subscribe to run updates
+- [x] Basic CLI structure with clap
+- [x] `buildit validate` - validate pipeline config
+- [x] `buildit run` - execute pipeline locally with Docker
+- [x] Real-time log streaming in terminal
+- [x] KDL config file parsing
 
-## Phase 6: CLI Integration
+### Development Environment
 
-### 6.1 HTTP Client
-- [ ] Add `reqwest` to buildit-cli
-- [ ] Implement API client for all endpoints
-- [ ] Config file for API URL and auth token
+- [x] Tilt + Kubernetes local dev setup
+- [x] K8s manifests (`k8s/base/`)
+  - [x] namespace.yaml
+  - [x] postgres.yaml (with PVC, secrets)
+  - [x] api.yaml (with RBAC)
+  - [x] migrations-job.yaml
+  - [x] kustomization.yaml
+- [x] Dockerfile.dev with cargo-watch for live reload
+- [x] Dockerfile.migrations with psql
+- [x] Tiltfile with resource dependencies
+- [x] OrbStack Kubernetes compatibility
 
-### 6.2 Working Commands
-- [ ] `buildit validate` - validate local pipeline config
-- [ ] `buildit run` - trigger pipeline locally (no server)
-- [ ] `buildit pipelines trigger` - trigger via API
-- [ ] `buildit runs logs --follow` - stream logs via WebSocket
+### Database Layer
 
-## Phase 7: Kubernetes Executor
+- [x] SQLx integration with PostgreSQL
+- [x] Clorinde for type-safe SQL query generation
+- [x] Repository pattern (`PgTenantRepo`, `PgPipelineRepo`)
+- [x] deadpool-postgres connection pooling
 
-### 7.1 K8s Job Creation
+---
+
+## In Progress
+
+### Kubernetes Executor
+
 - [ ] Implement `KubernetesExecutor.spawn()` - create K8s Job
 - [ ] Configure pod spec (image, command, env, resources)
-- [ ] Handle secrets injection
 - [ ] Implement `logs()` - stream pod logs via K8s API
-
-### 7.2 Job Lifecycle
 - [ ] Implement `status()` - watch Job status
 - [ ] Implement `wait()` - wait for Job completion
 - [ ] Implement `cancel()` - delete Job
-- [ ] Handle pod failures and restarts
-
-## Phase 8: Real-time Updates
-
-### 8.1 Event System
-- [ ] Create event bus (tokio broadcast channel)
-- [ ] Publish events on run/stage state changes
-- [ ] Publish log lines as events
-
-### 8.2 WebSocket Streaming
-- [ ] Subscribe clients to run events
-- [ ] Stream log lines in real-time
-- [ ] Handle client disconnection gracefully
 
 ---
 
-## MVP Definition
+## Not Started
 
-The MVP is complete when we can:
+### KDL Configuration Parser (Full)
 
-1. Write a `buildit.kdl` pipeline config
-2. Run `buildit validate buildit.kdl` to check it
-3. Run `buildit run` to execute the pipeline locally with Docker
-4. See real-time logs in the terminal
-5. (Optional) Run via API server with `buildit pipelines trigger`
+- [ ] Parse `cache` nodes
+- [ ] Validate DAG (no cycles, valid dependencies)
+- [ ] Variable interpolation (`{git.sha}`, `{branch}`)
+- [ ] System config parsing (executors, deployers)
+
+### Deployers
+
+- [ ] `KubernetesDeployer` implementation
+- [ ] Canary deployment support
+- [ ] Rollback functionality
+
+### Multi-Tenancy & Auth
+
+- [ ] OIDC/OAuth2 integration
+- [ ] OPA policy engine
+- [ ] Tenant isolation
+
+### Advanced Features
+
+- [ ] Artifact storage (S3/GCS)
+- [ ] Secret management integration
+- [ ] Caching layer
+- [ ] Notifications (Slack, Discord)
+- [ ] Preview environments
 
 ---
 
-## Execution Order
+## Architecture
 
-Start with these in order:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         API Server                              │
+│                     (Axum + WebSockets)                         │
+│                      localhost:3000                             │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        ▼                   ▼                   ▼
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  Scheduler   │    │   Database   │    │   Executor   │
+│ (Orchestrator)    │  (PostgreSQL) │    │   (Docker)   │
+└──────────────┘    └──────────────┘    └──────────────┘
+```
 
-1. **Phase 1** - Database (need storage for runs)
-2. **Phase 2** - KDL Parser (need to read pipeline configs)
-3. **Phase 3** - Docker Executor (need to run jobs)
-4. **Phase 4** - Pipeline Orchestrator (tie it together)
-5. **Phase 6.2** - CLI `buildit run` command (local execution)
+## Crate Structure
 
-Phases 5, 7, 8 can come after we have local execution working.
+```
+buildit/
+├── crates/
+│   ├── buildit-api/        # Axum web server + UI templates
+│   ├── buildit-core/       # Domain types, traits
+│   ├── buildit-executor/   # Job execution (Docker, K8s)
+│   ├── buildit-deployer/   # Deployment logic
+│   ├── buildit-scheduler/  # Pipeline orchestration
+│   ├── buildit-config/     # KDL parsing
+│   ├── buildit-db/         # Database layer (SQLx)
+│   ├── buildit-db-queries/ # Generated Clorinde queries
+│   └── buildit-cli/        # CLI tool
+├── k8s/
+│   └── base/               # Kubernetes manifests
+├── scripts/
+│   └── run-migrations.sh   # Migration runner
+├── Tiltfile                # Local K8s dev config
+├── Dockerfile.dev          # Dev image with cargo-watch
+└── Dockerfile.migrations   # Migration job image
+```
 
 ---
 
-## Next Action
+## Quick Start (Local Development)
 
-Start with **Phase 1.1**: Deploy PostgreSQL to your OrbStack Kubernetes cluster.
+```bash
+# Start local K8s cluster (OrbStack recommended)
+tilt up
+
+# Access UI
+open http://localhost:3000
+
+# Run CLI locally
+cargo run -p buildit-cli -- run
+
+# View Tilt dashboard
+open http://localhost:10350
+```
+
+---
+
+## Next Steps
+
+1. **Implement KubernetesExecutor** - Enable running jobs as K8s pods
+2. **Add artifact storage** - S3/GCS for build artifacts
+3. **Implement caching** - Speed up builds with dependency caching
+4. **Add authentication** - OAuth2/OIDC for user login
+5. **Production Dockerfile** - Multi-stage optimized build

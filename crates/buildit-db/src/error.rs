@@ -13,6 +13,15 @@ pub enum DbError {
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 
+    #[error("postgres error: {0}")]
+    Postgres(#[from] tokio_postgres::Error),
+
+    #[error("pool error: {0}")]
+    Pool(#[from] deadpool_postgres::PoolError),
+
+    #[error("connection error: {0}")]
+    Connection(String),
+
     #[error("migration error: {0}")]
     Migration(#[from] sqlx::migrate::MigrateError),
 }

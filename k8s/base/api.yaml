@@ -39,8 +39,8 @@ spec:
       serviceAccountName: buildit-api
       containers:
         - name: api
-          image: buildit-api:dev
-          imagePullPolicy: Never
+          image: buildit-api
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
               name: http

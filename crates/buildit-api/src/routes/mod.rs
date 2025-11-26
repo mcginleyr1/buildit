@@ -14,15 +14,14 @@ use axum::routing::get;
 pub fn router(state: AppState) -> Router {
     Router::new()
         .merge(ui::router())
-        .nest("/api/v1", api_router(state.clone()))
+        .nest("/api/v1", api_router())
         .route("/ws", get(ws_handler))
         .merge(health::router())
         .with_state(state)
 }
 
-fn api_router(state: AppState) -> Router<AppState> {
+fn api_router() -> Router<AppState> {
     Router::new()
         .nest("/tenants", tenants::router())
         .nest("/pipelines", pipelines::router())
-        .with_state(state)
 }

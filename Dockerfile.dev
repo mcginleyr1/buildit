@@ -1,10 +1,10 @@
 # Development Dockerfile with cargo-watch for live reload
-FROM rust:1.83-alpine
+FROM rust:latest
 
-RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconfig
+RUN apt-get update && apt-get install -y libssl-dev pkg-config && rm -rf /var/lib/apt/lists/*
 
 # Install cargo-watch for live reload
-RUN cargo install cargo-watch
+RUN cargo install cargo-watch --locked
 
 WORKDIR /app
 

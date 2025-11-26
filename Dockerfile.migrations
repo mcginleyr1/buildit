@@ -1,22 +1,13 @@
-# Migrations runner using sqlx-cli
-FROM rust:1.83-alpine AS builder
+# Simple migrations runner using psql
+FROM postgres:16-alpine
 
-RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconfig
+WORKDIR /migrations
 
-# Install sqlx-cli
-RUN cargo install sqlx-cli --no-default-features --features postgres,native-tls
+# Copy migration files
+COPY crates/buildit-db/migrations/*.sql ./
 
-# Runtime stage
-FROM alpine:3.20
+# Copy and set up the migration script
+COPY scripts/run-migrations.sh /run-migrations.sh
+RUN chmod +x /run-migrations.sh
 
-RUN apk add --no-cache ca-certificates
-
-WORKDIR /app
-
-# Copy sqlx binary
-COPY --from=builder /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
-
-# Copy migrations
-COPY crates/buildit-db/migrations ./migrations
-
-CMD ["sqlx", "migrate", "run"]
+CMD ["/run-migrations.sh"]

@@ -1,0 +1,24 @@
+# This file was generated with `clorinde`. Do not modify manually.
+# Regenerate with: clorinde live "$DATABASE_URL" (from crates/buildit-db)
+
+[package]
+name = "buildit-db-queries"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Generated type-safe database queries for BuildIt"
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+deadpool-postgres = { version = "0.14", optional = true }
+futures = "0.3"
+postgres-protocol = "0.6"
+postgres-types = { version = "0.2", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value"] }
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4", "with-uuid-1", "with-serde_json-1"], default-features = false }
+uuid = { version = "1", features = ["serde"] }
+
+[features]
+deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
+default = ["deadpool"]

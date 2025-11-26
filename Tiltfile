@@ -6,12 +6,10 @@
 # Use OrbStack's Kubernetes
 allow_k8s_contexts('orbstack')
 
-# Configuration
-config.define_bool("no-volumes")
-cfg = config.parse()
+# OrbStack shares Docker daemon with K8s, so local images work directly
 
 # ============================================================================
-# Namespace
+# Namespace & Secrets
 # ============================================================================
 
 k8s_yaml('k8s/base/namespace.yaml')
@@ -32,20 +30,17 @@ k8s_resource(
 # Migrations
 # ============================================================================
 
-# Build migrations image
 docker_build(
     'buildit-migrations',
     '.',
     dockerfile='Dockerfile.migrations',
-    only=[
-        'crates/buildit-db/migrations',
-    ],
+    only=['crates/buildit-db/migrations', 'scripts', 'Dockerfile.migrations'],
 )
 
-# Custom job for migrations - runs once on startup
-local_resource(
-    'run-migrations',
-    cmd='kubectl delete job -n buildit migrations --ignore-not-found && kubectl apply -f k8s/base/migrations-job.yaml && kubectl wait --for=condition=complete job/migrations -n buildit --timeout=120s',
+k8s_yaml('k8s/base/migrations-job.yaml')
+
+k8s_resource(
+    'migrations',
     resource_deps=['postgres'],
     labels=['database'],
 )
@@ -54,18 +49,16 @@ local_resource(
 # API Server
 # ============================================================================
 
-# Build API image with live reload
 docker_build(
     'buildit-api',
     '.',
     dockerfile='Dockerfile.dev',
+    ignore=['target/', '.git/', 'k8s/'],
     live_update=[
-        # Sync source files
         sync('./crates', '/app/crates'),
         sync('./Cargo.toml', '/app/Cargo.toml'),
         sync('./Cargo.lock', '/app/Cargo.lock'),
-        # Rebuild on changes
-        run('cargo build -p buildit-api', trigger=['./crates', './Cargo.toml']),
+        run('cd /app && cargo build -p buildit-api'),
     ],
 )
 
@@ -74,17 +67,10 @@ k8s_yaml('k8s/base/api.yaml')
 k8s_resource(
     'api',
     port_forwards=['3000:3000'],
-    resource_deps=['run-migrations'],
+    resource_deps=['migrations'],
     labels=['backend'],
+    links=[
+        link('http://localhost:3000', 'UI'),
+        link('http://localhost:3000/health', 'Health'),
+    ],
 )
-
-# ============================================================================
-# Resource Groups
-# ============================================================================
-
-# Group related resources for better UI
-config.set_enabled_resources([
-    'postgres',
-    'run-migrations',
-    'api',
-])
