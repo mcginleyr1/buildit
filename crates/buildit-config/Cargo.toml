@@ -1,0 +1,13 @@
+[package]
+name = "buildit-config"
+description = "KDL configuration parsing for BuildIt CI/CD"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+buildit-core.workspace = true
+kdl.workspace = true
+serde.workspace = true
+thiserror.workspace = true

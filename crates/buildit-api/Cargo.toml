@@ -1,0 +1,29 @@
+[package]
+name = "buildit-api"
+description = "API server for BuildIt CI/CD"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+buildit-core.workspace = true
+buildit-config.workspace = true
+buildit-db.workspace = true
+buildit-executor.workspace = true
+buildit-deployer.workspace = true
+buildit-scheduler.workspace = true
+
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+tokio.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+chrono.workspace = true

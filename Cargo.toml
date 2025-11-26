@@ -1,0 +1,71 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/buildit-api",
+    "crates/buildit-cli",
+    "crates/buildit-config",
+    "crates/buildit-core",
+    "crates/buildit-db",
+    "crates/buildit-deployer",
+    "crates/buildit-executor",
+    "crates/buildit-scheduler",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/your-org/buildit"
+rust-version = "1.85"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# Web framework
+axum = { version = "0.8", features = ["ws", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Configuration
+kdl = "6.5"
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "json"] }
+
+# Kubernetes
+kube = { version = "0.98", features = ["runtime", "derive", "client"] }
+k8s-openapi = { version = "0.24", features = ["latest"] }
+
+# CLI
+clap = { version = "4", features = ["derive", "env"] }
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+opentelemetry = "0.27"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Utilities
+uuid = { version = "1", features = ["v4", "v7", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+url = { version = "2", features = ["serde"] }
+bytes = "1"
+derive_more = { version = "1", features = ["display", "from"] }
+
+# Internal crates
+buildit-core = { path = "crates/buildit-core" }
+buildit-config = { path = "crates/buildit-config" }
+buildit-db = { path = "crates/buildit-db" }
+buildit-executor = { path = "crates/buildit-executor" }
+buildit-deployer = { path = "crates/buildit-deployer" }
+buildit-scheduler = { path = "crates/buildit-scheduler" }

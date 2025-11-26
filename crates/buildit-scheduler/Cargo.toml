@@ -1,0 +1,21 @@
+[package]
+name = "buildit-scheduler"
+description = "Job scheduling for BuildIt CI/CD"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+buildit-core.workspace = true
+buildit-db.workspace = true
+buildit-executor.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+futures.workspace = true
+serde.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
