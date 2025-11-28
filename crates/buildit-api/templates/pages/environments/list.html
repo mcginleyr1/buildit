@@ -2,14 +2,15 @@
 %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %} {% block breadcrumb %}
 <span class="text-zinc-900 dark:text-zinc-100 font-medium">Environments</span>
 {% endblock %} {% block header_actions %}
-<button
+<a
+    href="/environments/new"
     class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
 >
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
     </svg>
     New Environment
-</button>
+</a>
 {% endblock %} {% block content %}
 <div class="space-y-6">
     <!-- Environment cards -->
@@ -103,14 +104,15 @@
             <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                 Create your first environment to start deploying.
             </p>
-            <button
+            <a
+                href="/environments/new"
                 class="mt-6 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
             >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
                 Create Environment
-            </button>
+            </a>
         </div>
         {% endif %}
     </div>

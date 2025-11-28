@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}{{ environment.name }} - Environments - BuildIt{% endblock %}
+{% block nav_environments %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
+<a href="/environments" class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300">Environments</a>
+<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+</svg>
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">{{ environment.name }}</span>
+{% endblock %}
+
+{% block header_actions %}
+<div class="flex items-center gap-2">
+    <button class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Settings
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Environment Header -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center gap-4">
+                {% if environment.target_type == "kubernetes" %}
+                <div class="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M10.204 14.35l.007.01-.999 2.413a5.171 5.171 0 01-2.075-2.597l2.578-.437.489.611zm4.159.01l-.005.01 1.001 2.413a5.172 5.172 0 002.073-2.597l-2.578-.437-.491.611zm-1.992-1.385l-.008-.01-.997 2.413c.67.278 1.404.431 2.172.431s1.502-.153 2.172-.431l-.997-2.413-.008.01a2.566 2.566 0 01-2.334 0z" />
+                    </svg>
+                </div>
+                {% else if environment.target_type == "fly" %}
+                <div class="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <span class="text-lg font-bold text-purple-500">FLY</span>
+                </div>
+                {% else %}
+                <div class="w-12 h-12 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                    </svg>
+                </div>
+                {% endif %}
+                <div>
+                    <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ environment.name }}</h1>
+                    <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                        {{ environment.target_type }} &bull; {{ environment.target_name }}
+                        {% if !environment.region.is_empty() %} &bull; {{ environment.region }}{% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                {% if environment.health_status == "healthy" %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    All Healthy
+                </span>
+                {% else if environment.health_status == "degraded" %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    Degraded
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    Unhealthy
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="border-b border-zinc-200 dark:border-zinc-800">
+        <nav class="flex gap-6">
+            <button class="px-1 py-3 text-sm font-medium text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400">
+                Services
+            </button>
+            <button class="px-1 py-3 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 border-b-2 border-transparent">
+                Deployments
+            </button>
+            <button class="px-1 py-3 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 border-b-2 border-transparent">
+                Variables
+            </button>
+        </nav>
+    </div>
+
+    <!-- Services Table -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <div class="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Services</h2>
+            <button class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-md transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Service
+            </button>
+        </div>
+
+        {% if has_services %}
+        <table class="w-full">
+            <thead class="bg-zinc-50 dark:bg-zinc-800/50">
+                <tr>
+                    <th class="px-5 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Service</th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Version</th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Replicas</th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Status</th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Last Deploy</th>
+                    <th class="px-5 py-3 text-right text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {% for service in services %}
+                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                    <td class="px-5 py-4">
+                        <a href="/environments/{{ environment.name }}/services/{{ service.name }}" class="flex items-center gap-3 group">
+                            <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{{ service.name }}</span>
+                        </a>
+                    </td>
+                    <td class="px-5 py-4">
+                        <code class="text-xs bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-700 dark:text-zinc-300">{{ service.version }}</code>
+                    </td>
+                    <td class="px-5 py-4">
+                        <span class="text-sm text-zinc-900 dark:text-zinc-100">{{ service.ready_replicas }}/{{ service.total_replicas }}</span>
+                    </td>
+                    <td class="px-5 py-4">
+                        {% if service.status == "healthy" %}
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            Healthy
+                        </span>
+                        {% else if service.status == "degraded" %}
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            Degraded
+                        </span>
+                        {% else if service.status == "deploying" %}
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                            Deploying
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                            Unhealthy
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-4">
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ service.last_deploy_ago }}</span>
+                    </td>
+                    <td class="px-5 py-4 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <button class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Deploy
+                            </button>
+                            <button class="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="px-5 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+            </svg>
+            <h3 class="mt-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">No services yet</h3>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Add a service to start deploying to this environment.</p>
+            <button class="mt-4 inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-md transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Service
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Deployments -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <div class="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+            <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Recent Deployments</h2>
+        </div>
+
+        {% if has_deployments %}
+        <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
+            {% for deployment in recent_deployments %}
+            <div class="px-5 py-4 flex items-center gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <!-- Status -->
+                {% if deployment.status == "succeeded" %}
+                <div class="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                {% else if deployment.status == "failed" %}
+                <div class="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </div>
+                {% else if deployment.status == "in_progress" %}
+                <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </div>
+                {% else %}
+                <div class="w-8 h-8 rounded-full bg-zinc-500/10 flex items-center justify-center flex-shrink-0">
+                    <div class="w-3 h-3 rounded-full bg-zinc-400"></div>
+                </div>
+                {% endif %}
+
+                <!-- Deployment Info -->
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ deployment.service_name }}</span>
+                        <code class="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-400">{{ deployment.version }}</code>
+                    </div>
+                    <div class="mt-0.5 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                        {% if !deployment.commit_sha.is_empty() %}
+                        <code class="text-zinc-500 dark:text-zinc-400">{{ deployment.commit_sha }}</code>
+                        <span>&bull;</span>
+                        {% endif %}
+                        <span>{{ deployment.deployed_ago }}</span>
+                        {% if !deployment.deployed_by.is_empty() %}
+                        <span>&bull;</span>
+                        <span>by @{{ deployment.deployed_by }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Rollback button -->
+                {% if deployment.can_rollback %}
+                <button class="px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors">
+                    Rollback
+                </button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="px-5 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            No deployments yet
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

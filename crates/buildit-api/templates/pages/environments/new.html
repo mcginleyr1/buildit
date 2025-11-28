@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}New Environment - BuildIt{% endblock %}
+
+{% block nav_environments %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
+<a href="/environments" class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Environments</a>
+<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+</svg>
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">New Environment</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Create Environment</h1>
+        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Define a deployment environment like staging or production.</p>
+    </div>
+
+    <form id="create-env-form" class="space-y-6">
+        <!-- Basic Info -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Basic Information</h2>
+            
+            <div>
+                <label for="name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Name</label>
+                <input type="text" id="name" name="name" required
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="production">
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Description</label>
+                <textarea id="description" name="description" rows="2"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="Production environment for customer-facing services"></textarea>
+            </div>
+        </div>
+
+        <!-- Target -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Deployment Target</h2>
+            
+            <div>
+                <label for="target_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Target</label>
+                <select id="target_id" name="target_id" required
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">Select a target...</option>
+                    {% for target in targets %}
+                    <option value="{{ target.id }}">{{ target.name }} ({{ target.target_type }})</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-zinc-500">The infrastructure target where this environment will deploy</p>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Settings</h2>
+            
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="requires_approval" name="requires_approval" value="true"
+                    class="h-4 w-4 text-blue-600 border-zinc-300 dark:border-zinc-700 rounded focus:ring-blue-500">
+                <label for="requires_approval" class="text-sm text-zinc-900 dark:text-zinc-100">Require approval for deployments</label>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="auto_deploy" name="auto_deploy" value="true"
+                    class="h-4 w-4 text-blue-600 border-zinc-300 dark:border-zinc-700 rounded focus:ring-blue-500">
+                <label for="auto_deploy" class="text-sm text-zinc-900 dark:text-zinc-100">Auto-deploy on successful pipeline runs</label>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3">
+            <a href="/environments" class="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">
+                Cancel
+            </a>
+            <button type="submit"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                Create Environment
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('create-env-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    const data = {
+        name: formData.get('name'),
+        description: formData.get('description') || null,
+        target_id: formData.get('target_id'),
+        requires_approval: formData.get('requires_approval') === 'true',
+        auto_deploy: formData.get('auto_deploy') === 'true'
+    };
+    
+    try {
+        const response = await fetch('/api/v1/deployment/environments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            window.location.href = '/environments';
+        } else {
+            const error = await response.json();
+            alert('Error: ' + (error.message || 'Failed to create environment'));
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+</script>
+{% endblock %}

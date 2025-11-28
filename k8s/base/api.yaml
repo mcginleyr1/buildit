@@ -39,8 +39,8 @@ spec:
       serviceAccountName: buildit-api
       containers:
         - name: api
-          image: buildit-api
-          imagePullPolicy: IfNotPresent
+          image: buildit-api:dev
+          imagePullPolicy: Never
           ports:
             - containerPort: 3000
               name: http
@@ -51,11 +51,11 @@ spec:
                 name: api-secret
           resources:
             requests:
-              memory: "64Mi"
-              cpu: "50m"
+              memory: "512Mi"
+              cpu: "100m"
             limits:
-              memory: "256Mi"
-              cpu: "500m"
+              memory: "4Gi"
+              cpu: "2000m"
           readinessProbe:
             httpGet:
               path: /health

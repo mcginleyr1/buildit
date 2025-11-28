@@ -31,6 +31,25 @@ pub struct JobSpec {
     pub timeout: Option<Duration>,
     /// Volumes to mount.
     pub volumes: Vec<VolumeMount>,
+    /// Git repository to clone before running commands.
+    pub git_clone: Option<GitCloneSpec>,
+}
+
+/// Specification for cloning a git repository.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GitCloneSpec {
+    /// Repository URL to clone.
+    pub url: String,
+    /// Branch to checkout (defaults to default branch).
+    pub branch: Option<String>,
+    /// Specific commit SHA to checkout.
+    pub sha: Option<String>,
+    /// Directory to clone into (defaults to /workspace).
+    pub target_dir: String,
+    /// Depth for shallow clone (None for full clone).
+    pub depth: Option<u32>,
+    /// Access token for private repos.
+    pub access_token: Option<String>,
 }
 
 /// Resource requirements for a job.

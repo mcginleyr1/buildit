@@ -120,6 +120,20 @@
                                 </svg>
                                 Pipelines
                             </a>
+                            <a
+                                href="/runs"
+                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md {% block nav_runs %}text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800{% endblock %}"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="1.5"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                                    />
+                                </svg>
+                                Runs
+                            </a>
                         </div>
                     </div>
 
@@ -184,6 +198,48 @@
                             Infrastructure
                         </div>
                         <div class="space-y-1">
+                            <a
+                                href="/repositories"
+                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md {% block nav_repositories %}text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800{% endblock %}"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="1.5"
+                                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                                    />
+                                </svg>
+                                Repositories
+                            </a>
+                            <a
+                                href="/stacks"
+                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md {% block nav_stacks %}text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800{% endblock %}"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="1.5"
+                                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                                    />
+                                </svg>
+                                Stacks
+                            </a>
+                            <a
+                                href="/applications"
+                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md {% block nav_applications %}text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800{% endblock %}"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="1.5"
+                                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                                    />
+                                </svg>
+                                Applications
+                            </a>
                             <a
                                 href="/targets"
                                 class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md {% block nav_targets %}text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800{% endblock %}"
@@ -276,12 +332,551 @@
             </div>
         </div>
 
+        <!-- Command Palette Modal -->
+        <div id="command-palette" class="hidden fixed inset-0 z-50 overflow-y-auto">
+            <div class="flex min-h-screen items-start justify-center pt-[20vh] px-4">
+                <!-- Backdrop -->
+                <div
+                    class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                    onclick="closeCommandPalette()"
+                ></div>
+
+                <!-- Modal -->
+                <div
+                    class="relative bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-2xl w-full max-w-xl overflow-hidden"
+                >
+                    <!-- Search Input -->
+                    <div class="flex items-center px-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
+                        </svg>
+                        <input
+                            id="command-input"
+                            type="text"
+                            placeholder="Search or jump to..."
+                            class="w-full px-3 py-4 bg-transparent text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none text-base"
+                            oninput="filterCommands(this.value)"
+                            onkeydown="handleCommandKeydown(event)"
+                        />
+                        <kbd class="px-2 py-1 text-xs font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded"
+                            >ESC</kbd
+                        >
+                    </div>
+
+                    <!-- Commands List -->
+                    <div id="commands-list" class="max-h-80 overflow-y-auto p-2">
+                        <!-- Navigation -->
+                        <div class="px-2 py-1.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                            Navigation
+                        </div>
+                        <button
+                            class="command-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            data-command="goto-dashboard"
+                            data-keywords="home dashboard"
+                        >
+                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                                />
+                            </svg>
+                            <span class="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Go to Dashboard</span>
+                            <kbd class="px-1.5 py-0.5 text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded"
+                                >G D</kbd
+                            >
+                        </button>
+                        <button
+                            class="command-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            data-command="goto-pipelines"
+                            data-keywords="pipelines ci builds"
+                        >
+                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z"
+                                />
+                            </svg>
+                            <span class="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Go to Pipelines</span>
+                            <kbd class="px-1.5 py-0.5 text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded"
+                                >G P</kbd
+                            >
+                        </button>
+                        <button
+                            class="command-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            data-command="goto-runs"
+                            data-keywords="runs executions builds"
+                        >
+                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                                />
+                            </svg>
+                            <span class="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Go to Runs</span>
+                            <kbd class="px-1.5 py-0.5 text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded"
+                                >G R</kbd
+                            >
+                        </button>
+                        <button
+                            class="command-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            data-command="goto-environments"
+                            data-keywords="environments deployments env"
+                        >
+                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                                />
+                            </svg>
+                            <span class="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Go to Environments</span>
+                            <kbd class="px-1.5 py-0.5 text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded"
+                                >G E</kbd
+                            >
+                        </button>
+                        <button
+                            class="command-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            data-command="goto-targets"
+                            data-keywords="targets infrastructure clusters kubernetes"
+                        >
+                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"
+                                />
+                            </svg>
+                            <span class="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Go to Targets</span>
+                            <kbd class="px-1.5 py-0.5 text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded"
+                                >G T</kbd
+                            >
+                        </button>
+                        <button
+                            class="command-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            data-command="goto-settings"
+                            data-keywords="settings config preferences"
+                        >
+                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                            </svg>
+                            <span class="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Go to Settings</span>
+                            <kbd class="px-1.5 py-0.5 text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded"
+                                >G S</kbd
+                            >
+                        </button>
+
+                        <!-- Actions -->
+                        <div class="px-2 py-1.5 mt-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                            Actions
+                        </div>
+                        <button
+                            class="command-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            data-command="new-pipeline"
+                            data-keywords="create new pipeline add"
+                        >
+                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M12 4v16m8-8H4"
+                                />
+                            </svg>
+                            <span class="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Create New Pipeline</span>
+                            <kbd class="px-1.5 py-0.5 text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded"
+                                >N P</kbd
+                            >
+                        </button>
+                        <button
+                            class="command-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            data-command="toggle-theme"
+                            data-keywords="theme dark light mode"
+                        >
+                            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                                />
+                            </svg>
+                            <span class="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Toggle Theme</span>
+                        </button>
+                        <button
+                            class="command-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            data-command="show-shortcuts"
+                            data-keywords="keyboard shortcuts help"
+                        >
+                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                            </svg>
+                            <span class="flex-1 text-sm text-zinc-900 dark:text-zinc-100">Show Keyboard Shortcuts</span>
+                            <kbd class="px-1.5 py-0.5 text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800 rounded"
+                                >?</kbd
+                            >
+                        </button>
+                    </div>
+
+                    <!-- Footer -->
+                    <div
+                        class="px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between text-xs text-zinc-500"
+                    >
+                        <div class="flex items-center gap-4">
+                            <span class="flex items-center gap-1">
+                                <kbd class="px-1 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded">↑↓</kbd> navigate
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <kbd class="px-1 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded">↵</kbd> select
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <kbd class="px-1 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded">esc</kbd> close
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyboard Shortcuts Modal -->
+        <div id="shortcuts-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+            <div class="flex min-h-screen items-center justify-center p-4">
+                <!-- Backdrop -->
+                <div
+                    class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                    onclick="closeShortcutsModal()"
+                ></div>
+
+                <!-- Modal -->
+                <div
+                    class="relative bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-2xl w-full max-w-lg overflow-hidden"
+                >
+                    <div
+                        class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between"
+                    >
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Keyboard Shortcuts</h2>
+                        <button
+                            onclick="closeShortcutsModal()"
+                            class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Navigation -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">Navigation</h3>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-zinc-600 dark:text-zinc-400">Go to Dashboard</span>
+                                    <div class="flex gap-1">
+                                        <kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">G</kbd
+                                        ><kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">D</kbd>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-zinc-600 dark:text-zinc-400">Go to Pipelines</span>
+                                    <div class="flex gap-1">
+                                        <kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">G</kbd
+                                        ><kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">P</kbd>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-zinc-600 dark:text-zinc-400">Go to Runs</span>
+                                    <div class="flex gap-1">
+                                        <kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">G</kbd
+                                        ><kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">R</kbd>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-zinc-600 dark:text-zinc-400">Go to Environments</span>
+                                    <div class="flex gap-1">
+                                        <kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">G</kbd
+                                        ><kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">E</kbd>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-zinc-600 dark:text-zinc-400">Go to Targets</span>
+                                    <div class="flex gap-1">
+                                        <kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">G</kbd
+                                        ><kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">T</kbd>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-zinc-600 dark:text-zinc-400">Go to Settings</span>
+                                    <div class="flex gap-1">
+                                        <kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">G</kbd
+                                        ><kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">S</kbd>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">Actions</h3>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-zinc-600 dark:text-zinc-400">Command Palette</span>
+                                    <div class="flex gap-1">
+                                        <kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">⌘</kbd
+                                        ><kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">K</kbd>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-zinc-600 dark:text-zinc-400">New Pipeline</span>
+                                    <div class="flex gap-1">
+                                        <kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">N</kbd
+                                        ><kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">P</kbd>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-zinc-600 dark:text-zinc-400">Show Shortcuts</span>
+                                    <kbd class="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">?</kbd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <script>
             // Theme toggle functionality
             const themeToggle = document.getElementById("theme-toggle");
             themeToggle.addEventListener("click", function () {
                 const isDark = document.documentElement.classList.toggle("dark");
                 localStorage.setItem("theme", isDark ? "dark" : "light");
+            });
+
+            // Command palette
+            let commandPaletteOpen = false;
+            let shortcutsModalOpen = false;
+            let selectedCommandIndex = 0;
+            let keyBuffer = "";
+            let keyBufferTimeout;
+
+            function openCommandPalette() {
+                document.getElementById("command-palette").classList.remove("hidden");
+                document.getElementById("command-input").focus();
+                document.getElementById("command-input").value = "";
+                filterCommands("");
+                selectedCommandIndex = 0;
+                updateSelectedCommand();
+                commandPaletteOpen = true;
+            }
+
+            function closeCommandPalette() {
+                document.getElementById("command-palette").classList.add("hidden");
+                commandPaletteOpen = false;
+            }
+
+            function openShortcutsModal() {
+                document.getElementById("shortcuts-modal").classList.remove("hidden");
+                shortcutsModalOpen = true;
+            }
+
+            function closeShortcutsModal() {
+                document.getElementById("shortcuts-modal").classList.add("hidden");
+                shortcutsModalOpen = false;
+            }
+
+            function filterCommands(query) {
+                const items = document.querySelectorAll(".command-item");
+                const q = query.toLowerCase();
+                let visibleCount = 0;
+
+                items.forEach((item, index) => {
+                    const text = item.textContent.toLowerCase();
+                    const keywords = (item.dataset.keywords || "").toLowerCase();
+                    const matches = text.includes(q) || keywords.includes(q);
+                    item.style.display = matches ? "" : "none";
+                    if (matches) visibleCount++;
+                });
+
+                selectedCommandIndex = 0;
+                updateSelectedCommand();
+            }
+
+            function updateSelectedCommand() {
+                const items = document.querySelectorAll(".command-item");
+                const visibleItems = Array.from(items).filter((item) => item.style.display !== "none");
+
+                items.forEach((item) => item.classList.remove("bg-zinc-100", "dark:bg-zinc-800"));
+
+                if (visibleItems[selectedCommandIndex]) {
+                    visibleItems[selectedCommandIndex].classList.add("bg-zinc-100", "dark:bg-zinc-800");
+                    visibleItems[selectedCommandIndex].scrollIntoView({ block: "nearest" });
+                }
+            }
+
+            function handleCommandKeydown(event) {
+                const items = document.querySelectorAll(".command-item");
+                const visibleItems = Array.from(items).filter((item) => item.style.display !== "none");
+
+                if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    selectedCommandIndex = Math.min(selectedCommandIndex + 1, visibleItems.length - 1);
+                    updateSelectedCommand();
+                } else if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    selectedCommandIndex = Math.max(selectedCommandIndex - 1, 0);
+                    updateSelectedCommand();
+                } else if (event.key === "Enter") {
+                    event.preventDefault();
+                    if (visibleItems[selectedCommandIndex]) {
+                        executeCommand(visibleItems[selectedCommandIndex].dataset.command);
+                    }
+                } else if (event.key === "Escape") {
+                    closeCommandPalette();
+                }
+            }
+
+            function executeCommand(command) {
+                closeCommandPalette();
+
+                switch (command) {
+                    case "goto-dashboard":
+                        window.location.href = "/";
+                        break;
+                    case "goto-pipelines":
+                        window.location.href = "/pipelines";
+                        break;
+                    case "goto-runs":
+                        window.location.href = "/runs";
+                        break;
+                    case "goto-environments":
+                        window.location.href = "/environments";
+                        break;
+                    case "goto-targets":
+                        window.location.href = "/targets";
+                        break;
+                    case "goto-settings":
+                        window.location.href = "/settings";
+                        break;
+                    case "new-pipeline":
+                        window.location.href = "/pipelines/new";
+                        break;
+                    case "toggle-theme":
+                        themeToggle.click();
+                        break;
+                    case "show-shortcuts":
+                        openShortcutsModal();
+                        break;
+                }
+            }
+
+            // Click handlers for command items
+            document.querySelectorAll(".command-item").forEach((item) => {
+                item.addEventListener("click", () => executeCommand(item.dataset.command));
+            });
+
+            // Global keyboard shortcuts
+            document.addEventListener("keydown", function (event) {
+                // Don't capture if typing in an input
+                if (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA") {
+                    if (event.key === "Escape") {
+                        event.target.blur();
+                    }
+                    return;
+                }
+
+                // Command palette: Cmd+K or Ctrl+K
+                if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+                    event.preventDefault();
+                    if (commandPaletteOpen) {
+                        closeCommandPalette();
+                    } else {
+                        openCommandPalette();
+                    }
+                    return;
+                }
+
+                // Close modals on Escape
+                if (event.key === "Escape") {
+                    if (commandPaletteOpen) closeCommandPalette();
+                    if (shortcutsModalOpen) closeShortcutsModal();
+                    return;
+                }
+
+                // Show shortcuts: ?
+                if (event.key === "?" && !event.metaKey && !event.ctrlKey) {
+                    event.preventDefault();
+                    openShortcutsModal();
+                    return;
+                }
+
+                // Two-key shortcuts using buffer
+                clearTimeout(keyBufferTimeout);
+
+                keyBuffer += event.key.toLowerCase();
+                keyBufferTimeout = setTimeout(() => {
+                    keyBuffer = "";
+                }, 500);
+
+                // G + key navigation
+                if (keyBuffer === "gd") {
+                    window.location.href = "/";
+                    keyBuffer = "";
+                } else if (keyBuffer === "gp") {
+                    window.location.href = "/pipelines";
+                    keyBuffer = "";
+                } else if (keyBuffer === "gr") {
+                    window.location.href = "/runs";
+                    keyBuffer = "";
+                } else if (keyBuffer === "ge") {
+                    window.location.href = "/environments";
+                    keyBuffer = "";
+                } else if (keyBuffer === "gt") {
+                    window.location.href = "/targets";
+                    keyBuffer = "";
+                } else if (keyBuffer === "gs") {
+                    window.location.href = "/settings";
+                    keyBuffer = "";
+                } else if (keyBuffer === "np") {
+                    window.location.href = "/pipelines/new";
+                    keyBuffer = "";
+                }
+
+                // Keep only last 2 chars in buffer
+                if (keyBuffer.length > 2) {
+                    keyBuffer = keyBuffer.slice(-2);
+                }
             });
         </script>
         {% block scripts %}{% endblock %}

@@ -3,7 +3,7 @@
 use buildit_config::VariableContext;
 use buildit_core::ResourceId;
 use buildit_core::executor::{
-    Executor, JobSpec, JobStatus, LogLine, ResourceRequirements, VolumeMount,
+    Executor, GitCloneSpec, JobSpec, JobStatus, LogLine, ResourceRequirements, VolumeMount,
 };
 use buildit_core::pipeline::{Pipeline, Stage, StageAction};
 use futures::StreamExt;
@@ -88,6 +88,22 @@ impl PipelineOrchestrator {
         mpsc::Receiver<PipelineEvent>,
         tokio::task::JoinHandle<PipelineResult>,
     ) {
+        self.execute_with_git(pipeline, env, var_ctx, None)
+    }
+
+    /// Execute a pipeline with git repository cloning.
+    ///
+    /// If `git_clone` is provided, each stage will clone the repository before running commands.
+    pub fn execute_with_git(
+        &self,
+        pipeline: &Pipeline,
+        env: HashMap<String, String>,
+        var_ctx: Option<VariableContext>,
+        git_clone: Option<GitCloneSpec>,
+    ) -> (
+        mpsc::Receiver<PipelineEvent>,
+        tokio::task::JoinHandle<PipelineResult>,
+    ) {
         let (tx, rx) = mpsc::channel(100);
         let executor = self.executor.clone();
         let working_dir = self.working_dir.clone();
@@ -95,7 +111,7 @@ impl PipelineOrchestrator {
         let var_ctx = var_ctx.unwrap_or_default();
 
         let handle = tokio::spawn(async move {
-            Self::execute_inner(executor, working_dir, stages, env, var_ctx, tx).await
+            Self::execute_inner(executor, working_dir, stages, env, var_ctx, git_clone, tx).await
         });
 
         (rx, handle)
@@ -108,6 +124,7 @@ impl PipelineOrchestrator {
         stages: Vec<Stage>,
         env: HashMap<String, String>,
         mut var_ctx: VariableContext,
+        git_clone: Option<GitCloneSpec>,
         tx: mpsc::Sender<PipelineEvent>,
     ) -> PipelineResult {
         let mut stage_states: HashMap<String, StageState> = stages
@@ -168,7 +185,17 @@ impl PipelineOrchestrator {
                 })
                 .await;
 
-            match Self::execute_stage(&executor, &working_dir, stage, &env, &var_ctx, &tx).await {
+            match Self::execute_stage(
+                &executor,
+                &working_dir,
+                stage,
+                &env,
+                &var_ctx,
+                &git_clone,
+                &tx,
+            )
+            .await
+            {
                 Ok(()) => {
                     info!(stage = %stage.name, "Stage completed successfully");
                     stage_states.insert(stage.name.clone(), StageState::Succeeded);
@@ -213,6 +240,7 @@ impl PipelineOrchestrator {
         stage: &Stage,
         env: &HashMap<String, String>,
         var_ctx: &VariableContext,
+        git_clone: &Option<GitCloneSpec>,
         tx: &mpsc::Sender<PipelineEvent>,
     ) -> Result<(), String> {
         match &stage.action {
@@ -250,15 +278,25 @@ impl PipelineOrchestrator {
                     vec![]
                 };
 
+                // Determine working directory based on git clone or default
+                let job_working_dir = if git_clone.is_some() {
+                    Some("/workspace".to_string())
+                } else if !volumes.is_empty() {
+                    Some("/workspace".to_string())
+                } else {
+                    None
+                };
+
                 let job_spec = JobSpec {
                     id: ResourceId::new(),
                     image: interpolated_image.clone(),
                     command,
-                    working_dir: Some("/workspace".to_string()),
+                    working_dir: job_working_dir,
                     env: full_env,
                     resources: ResourceRequirements::default(),
                     timeout: None,
                     volumes,
+                    git_clone: git_clone.clone(),
                 };
 
                 info!(stage = %stage.name, image = %interpolated_image, "Spawning job");

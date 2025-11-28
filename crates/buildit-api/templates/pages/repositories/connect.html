@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Connect Repository - BuildIt{% endblock %}
+
+{% block nav_repositories %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
+<a href="/repositories" class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Repositories</a>
+<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+</svg>
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">Connect Repository</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Connect a Repository</h1>
+        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Connect a Git repository to BuildIt for CI/CD.</p>
+    </div>
+
+    <!-- Provider Selection -->
+    <div class="space-y-4 mb-8">
+        <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Select Provider</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- GitHub -->
+            <button onclick="selectProvider('github')" id="provider-github"
+                class="provider-btn flex flex-col items-center gap-3 p-6 bg-white dark:bg-zinc-900 rounded-lg border-2 border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors">
+                <svg class="w-12 h-12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">GitHub</span>
+            </button>
+
+            <!-- GitLab -->
+            <button onclick="selectProvider('gitlab')" id="provider-gitlab"
+                class="provider-btn flex flex-col items-center gap-3 p-6 bg-white dark:bg-zinc-900 rounded-lg border-2 border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors">
+                <svg class="w-12 h-12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z"/>
+                </svg>
+                <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">GitLab</span>
+            </button>
+
+            <!-- Bitbucket -->
+            <button onclick="selectProvider('bitbucket')" id="provider-bitbucket"
+                class="provider-btn flex flex-col items-center gap-3 p-6 bg-white dark:bg-zinc-900 rounded-lg border-2 border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors">
+                <svg class="w-12 h-12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M.778 1.213a.768.768 0 00-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 00.77-.646l3.27-20.03a.768.768 0 00-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z"/>
+                </svg>
+                <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Bitbucket</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Manual Entry Form (shown after provider selection) -->
+    <div id="manual-form" class="hidden">
+        <form id="connect-repo-form" class="space-y-6">
+            <input type="hidden" id="provider" name="provider" value="">
+            
+            <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+                <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Repository Details</h2>
+                
+                <div>
+                    <label for="owner" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Owner/Organization</label>
+                    <input type="text" id="owner" name="owner" required
+                        class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        placeholder="my-org">
+                </div>
+
+                <div>
+                    <label for="name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Repository Name</label>
+                    <input type="text" id="name" name="name" required
+                        class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        placeholder="my-repo">
+                </div>
+
+                <div>
+                    <label for="clone_url" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Clone URL</label>
+                    <input type="text" id="clone_url" name="clone_url" required
+                        class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        placeholder="https://github.com/my-org/my-repo.git">
+                </div>
+
+                <div>
+                    <label for="default_branch" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Default Branch</label>
+                    <input type="text" id="default_branch" name="default_branch" value="main"
+                        class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="is_private" name="is_private" value="true"
+                        class="h-4 w-4 text-blue-600 border-zinc-300 dark:border-zinc-700 rounded focus:ring-blue-500">
+                    <label for="is_private" class="text-sm text-zinc-900 dark:text-zinc-100">Private repository</label>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3">
+                <a href="/repositories" class="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">
+                    Cancel
+                </a>
+                <button type="submit"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                    Connect Repository
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- OAuth hint -->
+    <div id="oauth-hint" class="hidden mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Tip:</strong> Connect your <span id="provider-name">GitHub</span> account in 
+                    <a href="/settings/git" class="underline hover:no-underline">Settings → Git</a> 
+                    to automatically import repositories.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedProvider = null;
+
+function selectProvider(provider) {
+    selectedProvider = provider;
+    document.getElementById('provider').value = provider;
+    
+    // Update button styles
+    document.querySelectorAll('.provider-btn').forEach(btn => {
+        btn.classList.remove('border-blue-500', 'dark:border-blue-400');
+        btn.classList.add('border-zinc-200', 'dark:border-zinc-800');
+    });
+    document.getElementById('provider-' + provider).classList.remove('border-zinc-200', 'dark:border-zinc-800');
+    document.getElementById('provider-' + provider).classList.add('border-blue-500', 'dark:border-blue-400');
+    
+    // Show form and hint
+    document.getElementById('manual-form').classList.remove('hidden');
+    document.getElementById('oauth-hint').classList.remove('hidden');
+    
+    // Update provider name in hint
+    const names = { github: 'GitHub', gitlab: 'GitLab', bitbucket: 'Bitbucket' };
+    document.getElementById('provider-name').textContent = names[provider];
+    
+    // Update clone URL placeholder
+    const placeholders = {
+        github: 'https://github.com/my-org/my-repo.git',
+        gitlab: 'https://gitlab.com/my-org/my-repo.git',
+        bitbucket: 'https://bitbucket.org/my-org/my-repo.git'
+    };
+    document.getElementById('clone_url').placeholder = placeholders[provider];
+}
+
+document.getElementById('connect-repo-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    const owner = formData.get('owner');
+    const name = formData.get('name');
+    
+    const data = {
+        provider: formData.get('provider'),
+        owner: owner,
+        name: name,
+        full_name: owner + '/' + name,
+        clone_url: formData.get('clone_url'),
+        default_branch: formData.get('default_branch') || 'main',
+        is_private: formData.get('is_private') === 'true'
+    };
+    
+    try {
+        const response = await fetch('/api/v1/repositories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            window.location.href = '/repositories/' + result.id;
+        } else {
+            const error = await response.json();
+            alert('Error: ' + (error.message || 'Failed to connect repository'));
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+</script>
+{% endblock %}

@@ -1,185 +1,340 @@
-{% extends "base.html" %} {% block title %}{{ pipeline.name }} - BuildIt{% endblock %} {% block nav_pipelines
-%}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %} {% block breadcrumb %}
+{% extends "base.html" %}
+{% block title %}{{ pipeline.name }} - BuildIt{% endblock %}
+{% block nav_pipelines %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
 <a href="/pipelines" class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300">Pipelines</a>
 <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 </svg>
 <span class="text-zinc-900 dark:text-zinc-100 font-medium">{{ pipeline.name }}</span>
-{% endblock %} {% block header_actions %}
-<button
-    hx-post="/api/v1/pipelines/{{ pipeline.id }}/runs"
-    hx-swap="none"
-    hx-on::after-request="window.location.reload()"
-    class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
->
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-        />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-    Run Pipeline
-</button>
-{% endblock %} {% block content %}
+{% endblock %}
+
+{% block header_actions %}
+<div class="flex items-center gap-2">
+    <button
+        hx-post="/api/v1/pipelines/{{ pipeline.id }}/runs"
+        hx-swap="none"
+        hx-on::after-request="window.location.reload()"
+        class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+    >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Run Pipeline
+    </button>
+    <button class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Settings
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
 <div class="space-y-6">
-    <!-- Pipeline header -->
+    <!-- Pipeline Header Card -->
     <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
-        <div class="flex items-start justify-between">
-            <div>
-                <h1 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{{ pipeline.name }}</h1>
-                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 font-mono">{{ pipeline.repository }}</p>
+        <div class="flex items-start gap-4">
+            <!-- Pipeline Icon -->
+            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-7 h-7 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                </svg>
+            </div>
+
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ pipeline.name }}</h1>
+                    {% if pipeline.last_run_status == "succeeded" %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        Passing
+                    </span>
+                    {% else if pipeline.last_run_status == "failed" %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        Failing
+                    </span>
+                    {% else if pipeline.last_run_status == "running" %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                        Running
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="mt-2 flex items-center gap-4 text-sm">
+                    <a href="{{ pipeline.repository }}" target="_blank" class="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                        <span class="font-mono">{{ pipeline.repository }}</span>
+                    </a>
+                    {% if !pipeline.default_branch.is_empty() %}
+                    <span class="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        {{ pipeline.default_branch }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="flex items-center gap-6 flex-shrink-0">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ pipeline.total_runs }}</div>
+                    <div class="text-xs text-zinc-500 dark:text-zinc-400">Total Runs</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ pipeline.success_rate }}%</div>
+                    <div class="text-xs text-zinc-500 dark:text-zinc-400">Success Rate</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ pipeline.avg_duration }}</div>
+                    <div class="text-xs text-zinc-500 dark:text-zinc-400">Avg Duration</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="border-b border-zinc-200 dark:border-zinc-800">
+        <nav class="flex gap-6">
+            <button class="px-1 py-3 text-sm font-medium text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" data-tab="runs">
+                Runs
+            </button>
+            <button class="px-1 py-3 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 border-b-2 border-transparent" data-tab="config">
+                Configuration
+            </button>
+            <button class="px-1 py-3 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 border-b-2 border-transparent" data-tab="settings">
+                Settings
+            </button>
+        </nav>
+    </div>
+
+    <!-- Runs Tab Content -->
+    <div id="tab-runs" class="space-y-4">
+        <!-- Filters -->
+        <div class="flex items-center gap-4">
+            <div class="flex-1 relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                    type="text"
+                    placeholder="Search runs by commit, branch..."
+                    class="w-full pl-9 pr-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+            </div>
+            <select class="px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-600 dark:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option>All branches</option>
+                <option>main</option>
+                <option>develop</option>
+            </select>
+            <select class="px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-600 dark:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option>All statuses</option>
+                <option>Succeeded</option>
+                <option>Failed</option>
+                <option>Running</option>
+            </select>
+        </div>
+
+        <!-- Runs List -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            {% if !has_runs %}
+            <div class="px-6 py-16 text-center">
+                <svg class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <h3 class="mt-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">No runs yet</h3>
+                <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Trigger your first run to get started.</p>
+                <button
+                    hx-post="/api/v1/pipelines/{{ pipeline.id }}/runs"
+                    hx-swap="none"
+                    hx-on::after-request="window.location.reload()"
+                    class="mt-6 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Run Now
+                </button>
+            </div>
+            {% else %}
+            <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {% for run in runs %}
+                <a href="/pipelines/{{ pipeline.id }}/runs/{{ run.id }}" class="flex items-center gap-4 px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group">
+                    <!-- Status -->
+                    {% if run.status == "succeeded" %}
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    {% else if run.status == "failed" %}
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                    {% else if run.status == "running" %}
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </div>
+                    {% else %}
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-zinc-500/10 flex items-center justify-center">
+                        <div class="w-3 h-3 rounded-full bg-zinc-400"></div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Run Info -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base font-semibold text-zinc-900 dark:text-zinc-100">#{{ run.number }}</span>
+                            {% if !run.branch.is_empty() %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                                {{ run.branch }}
+                            </span>
+                            {% endif %}
+                            {% if !run.commit_sha.is_empty() %}
+                            <code class="text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">{{ run.commit_sha }}</code>
+                            {% endif %}
+                        </div>
+                        {% if !run.commit_message.is_empty() %}
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 truncate">{{ run.commit_message }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Stage Indicators (mini pipeline visualization) -->
+                    {% if !run.stages.is_empty() %}
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        {% for stage in run.stages %}
+                        {% if stage.status == "succeeded" %}
+                        <div class="w-6 h-2 rounded-full bg-green-500" title="{{ stage.name }}: passed"></div>
+                        {% else if stage.status == "failed" %}
+                        <div class="w-6 h-2 rounded-full bg-red-500" title="{{ stage.name }}: failed"></div>
+                        {% else if stage.status == "running" %}
+                        <div class="w-6 h-2 rounded-full bg-blue-500 animate-pulse" title="{{ stage.name }}: running"></div>
+                        {% else %}
+                        <div class="w-6 h-2 rounded-full bg-zinc-300 dark:bg-zinc-700" title="{{ stage.name }}: pending"></div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Time/Duration -->
+                    <div class="flex-shrink-0 text-right">
+                        <p class="text-sm text-zinc-900 dark:text-zinc-100">{{ run.created_at }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400 font-mono">{{ run.duration }}</p>
+                    </div>
+
+                    <!-- Arrow -->
+                    <svg class="flex-shrink-0 w-5 h-5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Configuration Tab Content (hidden by default) -->
+    <div id="tab-config" class="hidden">
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <div class="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Pipeline Configuration (KDL)</h2>
+                <button class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">Edit</button>
+            </div>
+            <div class="p-4 bg-zinc-950">
+                <pre class="text-sm text-zinc-300 font-mono overflow-x-auto"><code>{{ pipeline.config }}</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Tab Content (hidden by default) -->
+    <div id="tab-settings" class="hidden space-y-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
+            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4">General Settings</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pipeline Name</label>
+                    <input type="text" value="{{ pipeline.name }}" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Repository URL</label>
+                    <input type="text" value="{{ pipeline.repository }}" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 font-mono" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Default Branch</label>
+                    <input type="text" value="{{ pipeline.default_branch }}" placeholder="main" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100" />
+                </div>
             </div>
         </div>
 
-        <!-- Tabs -->
-        <div class="mt-6 border-b border-zinc-200 dark:border-zinc-800">
-            <nav class="-mb-px flex gap-6">
-                <button
-                    class="pb-3 px-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400"
-                >
-                    Runs
-                </button>
-                <button
-                    class="pb-3 px-1 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 border-b-2 border-transparent"
-                >
-                    Configuration
-                </button>
-                <button
-                    class="pb-3 px-1 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 border-b-2 border-transparent"
-                >
-                    Settings
-                </button>
-            </nav>
-        </div>
-    </div>
-
-    <!-- Runs list -->
-    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-        <div class="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
-            <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Recent Runs</h2>
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6">
+            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Triggers</h3>
+            <div class="space-y-3">
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" checked class="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-indigo-600 focus:ring-indigo-500" />
+                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Run on push to default branch</span>
+                </label>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" checked class="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-indigo-600 focus:ring-indigo-500" />
+                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Run on pull request</span>
+                </label>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" class="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-indigo-600 focus:ring-indigo-500" />
+                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Run on tag</span>
+                </label>
+            </div>
         </div>
 
-        {% if !has_runs %}
-        <div class="px-6 py-16 text-center">
-            <svg
-                class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <h3 class="mt-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">No runs yet</h3>
-            <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Trigger a run to get started.</p>
-            <button
-                hx-post="/api/v1/pipelines/{{ pipeline.id }}/runs"
-                hx-swap="none"
-                hx-on::after-request="window.location.reload()"
-                class="mt-6 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            >
+        <div class="bg-red-500/5 border border-red-500/20 rounded-lg p-6">
+            <h3 class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">Danger Zone</h3>
+            <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4">Deleting this pipeline will remove all run history and cannot be undone.</p>
+            <button class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                    />
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                Run Now
+                Delete Pipeline
             </button>
         </div>
-        {% else %}
-        <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {% for run in runs %}
-            <a
-                href="/pipelines/{{ pipeline.id }}/runs/{{ run.id }}"
-                class="flex items-center gap-4 px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
-            >
-                <!-- Status -->
-                {% if run.status == "succeeded" %}
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                </div>
-                {% else if run.status == "failed" %}
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                    </svg>
-                </div>
-                {% else if run.status == "running" %}
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                    <svg
-                        class="w-4 h-4 text-blue-500 animate-spin"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                    </svg>
-                </div>
-                {% else %}
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-500/10 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                    </svg>
-                </div>
-                {% endif %}
-
-                <!-- Run info -->
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">#{{ run.number }}</span>
-                        <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ run.branch }}</span>
-                        {% if !run.commit_sha.is_empty() %}
-                        <code
-                            class="text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded"
-                            >{{ run.commit_sha }}</code
-                        >
-                        {% endif %}
-                    </div>
-                    <p class="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400 truncate">{{ run.commit_message }}</p>
-                </div>
-
-                <!-- Time and duration -->
-                <div class="flex-shrink-0 text-right">
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ run.created_at }}</p>
-                    <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ run.duration }}</p>
-                </div>
-
-                <!-- Arrow -->
-                <svg class="flex-shrink-0 w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </a>
-            {% endfor %}
-        </div>
-        {% endif %}
     </div>
 </div>
+
+<script>
+    // Tab switching
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.dataset.tab;
+
+            // Update tab buttons
+            document.querySelectorAll('[data-tab]').forEach(t => {
+                t.classList.remove('text-indigo-600', 'dark:text-indigo-400', 'border-indigo-600', 'dark:border-indigo-400');
+                t.classList.add('text-zinc-500', 'dark:text-zinc-400', 'border-transparent');
+            });
+            this.classList.remove('text-zinc-500', 'dark:text-zinc-400', 'border-transparent');
+            this.classList.add('text-indigo-600', 'dark:text-indigo-400', 'border-indigo-600', 'dark:border-indigo-400');
+
+            // Update tab content
+            document.querySelectorAll('[id^="tab-"]').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+        });
+    });
+</script>
 {% endblock %}

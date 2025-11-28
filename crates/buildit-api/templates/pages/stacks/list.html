@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Stacks - BuildIt{% endblock %}
+
+{% block nav_stacks %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">Stacks</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Stacks</h1>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Terraform workspaces for infrastructure management.</p>
+        </div>
+        <a href="/stacks/new" class="bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New Stack
+        </a>
+    </div>
+
+    {% if has_stacks %}
+    <!-- Stack list -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-zinc-50 dark:bg-zinc-800/50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Stack</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Resources</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Last Run</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {% for stack in stacks %}
+                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                    <td class="px-6 py-4">
+                        <a href="/stacks/{{ stack.id }}" class="group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M1 0l4 2.5v5L1 5V0zm6-5l-4 2.5v5l4-2.5v-5zm0 14l-4 2.5v5l4-2.5v-5zm6-6l-4 2.5v5l4-2.5v-5z" transform="translate(5,3)"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">{{ stack.name }}</div>
+                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ stack.path }}</div>
+                                </div>
+                            </div>
+                        </a>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if stack.status == "ready" %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% elif stack.status == "error" %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% elif stack.status == "initializing" %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300{% else %}bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300{% endif %}">
+                            {{ stack.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
+                        {% if stack.resource_count > 0 %}
+                        {{ stack.resource_count }} resources
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if stack.has_last_run %}
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if stack.last_run_status == "succeeded" %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% elif stack.last_run_status == "failed" %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% elif stack.last_run_status == "needs_approval" %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300{% elif stack.last_run_status == "running" %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300{% else %}bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300{% endif %}">
+                                {{ stack.last_run_type }}
+                            </span>
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ stack.last_run_ago }}</span>
+                        </div>
+                        {% else %}
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">No runs yet</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="triggerPlan('{{ stack.id }}')" class="px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors">
+                                Plan
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <!-- Empty state -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-12 text-center">
+        <svg class="w-12 h-12 mx-auto text-zinc-400 dark:text-zinc-600" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M1 0l4 2.5v5L1 5V0zm6-5l-4 2.5v5l4-2.5v-5zm0 14l-4 2.5v5l4-2.5v-5zm6-6l-4 2.5v5l4-2.5v-5z" transform="translate(5,3)"/>
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-zinc-900 dark:text-zinc-100">No stacks configured</h3>
+        <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Create a stack to manage Terraform infrastructure.</p>
+        <a href="/stacks/new" class="mt-6 inline-flex items-center gap-2 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New Stack
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+async function triggerPlan(stackId) {
+    try {
+        const response = await fetch(`/api/stacks/${stackId}/runs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ run_type: 'plan' })
+        });
+        if (response.ok) {
+            window.location.href = `/stacks/${stackId}`;
+        }
+    } catch (err) {
+        console.error('Failed to trigger plan:', err);
+    }
+}
+</script>
+{% endblock %}

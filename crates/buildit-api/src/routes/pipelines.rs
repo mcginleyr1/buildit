@@ -11,8 +11,9 @@ use crate::AppState;
 use crate::error::ApiError;
 use buildit_config::VariableContextBuilder;
 use buildit_core::ResourceId;
+use buildit_core::executor::GitCloneSpec;
 use buildit_core::pipeline::Pipeline;
-use buildit_db::{LogRepo, PipelineRepo};
+use buildit_db::{LogRepo, PipelineRepo, RepositoryRepo};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -202,11 +203,34 @@ async fn trigger_run(
         .get_by_id(ResourceId::from_uuid(id))
         .await?;
 
-    // Parse config - extract stages and env from stored JSON
+    // Load stages from pipeline_stages table
+    let stage_records = state
+        .pipeline_repo
+        .list_stages(ResourceId::from_uuid(id))
+        .await?;
+
+    // Convert stage records to Stage structs
+    let stages: Vec<buildit_core::pipeline::Stage> = stage_records
+        .into_iter()
+        .map(|s| {
+            let env: HashMap<String, String> = serde_json::from_value(s.env).unwrap_or_default();
+            buildit_core::pipeline::Stage {
+                name: s.name,
+                needs: s.depends_on,
+                when: None,
+                manual: false,
+                action: buildit_core::pipeline::StageAction::Run {
+                    image: s.image.unwrap_or_else(|| "alpine:latest".to_string()),
+                    commands: s.commands,
+                    artifacts: vec![],
+                },
+                env,
+            }
+        })
+        .collect();
+
+    // Parse env and triggers from config JSON
     let config = &pipeline_record.config;
-    let stages: Vec<buildit_core::pipeline::Stage> =
-        serde_json::from_value(config.get("stages").cloned().unwrap_or_default())
-            .map_err(|e| ApiError::Internal(format!("Invalid stages config: {}", e)))?;
     let env: HashMap<String, String> =
         serde_json::from_value(config.get("env").cloned().unwrap_or_default()).unwrap_or_default();
     let triggers: Vec<buildit_core::pipeline::Trigger> =
@@ -223,6 +247,34 @@ async fn trigger_run(
         stages,
         env,
         caches: vec![],
+    };
+
+    // Get repository clone URL if pipeline is linked to a repository
+    let git_clone_spec = if let Some(repo_id) = pipeline_record.repository_id {
+        match state
+            .repository_repo
+            .get_by_id(ResourceId::from_uuid(repo_id))
+            .await
+        {
+            Ok(repo) => {
+                let branch = req.branch.clone();
+                let sha = req.sha.clone();
+                Some(GitCloneSpec {
+                    url: repo.clone_url,
+                    branch,
+                    sha,
+                    depth: Some(1), // Shallow clone for CI
+                    target_dir: "/workspace".to_string(),
+                    access_token: None, // TODO: Get from repository credentials
+                })
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "Failed to get repository for pipeline, skipping git clone");
+                None
+            }
+        }
+    } else {
+        None
     };
 
     // Execute pipeline in background (if orchestrator is available)
@@ -279,14 +331,16 @@ async fn trigger_run(
                 .with_git_sha(git_sha)
                 .build();
 
-            // Execute
+            // Execute with git clone if repository is linked
             tracing::info!(run_id = %run_id, "Executing pipeline with {} stages", pipeline.stages.len());
-            let (event_rx, result_handle) = orchestrator.execute(&pipeline, env, Some(var_ctx));
+            let (event_rx, result_handle) =
+                orchestrator.execute_with_git(&pipeline, env, Some(var_ctx), git_clone_spec);
 
             // Process events and update stage results in database
             let mut event_rx = event_rx;
             let repo_clone = pipeline_repo.clone();
             let log_repo_clone = log_repo.clone();
+            let broadcaster_clone = broadcaster.clone();
             while let Some(event) = event_rx.recv().await {
                 match event {
                     buildit_scheduler::PipelineEvent::StageStarted { stage } => {
@@ -297,6 +351,13 @@ async fn trigger_run(
                         {
                             tracing::error!(error = %e, "Failed to update stage start");
                         }
+                        // Broadcast stage started event
+                        broadcaster_clone.send(crate::ws::BroadcastEvent::StageUpdate {
+                            run_id: run_id_str.clone(),
+                            stage_name: stage.clone(),
+                            status: "running".to_string(),
+                            duration: None,
+                        });
                     }
                     buildit_scheduler::PipelineEvent::StageCompleted { stage, success } => {
                         let status = if success { "succeeded" } else { "failed" };
@@ -308,6 +369,13 @@ async fn trigger_run(
                         {
                             tracing::error!(error = %e, "Failed to update stage finish");
                         }
+                        // Broadcast stage completed event
+                        broadcaster_clone.send(crate::ws::BroadcastEvent::StageUpdate {
+                            run_id: run_id_str.clone(),
+                            stage_name: stage.clone(),
+                            status: status.to_string(),
+                            duration: None, // TODO: calculate duration
+                        });
                     }
                     buildit_scheduler::PipelineEvent::StageLog { stage, line } => {
                         // Store log line to database
@@ -322,9 +390,22 @@ async fn trigger_run(
                         {
                             tracing::error!(error = %e, "Failed to store log line");
                         }
+                        // Broadcast log line event
+                        broadcaster_clone.send(crate::ws::BroadcastEvent::LogLine {
+                            run_id: run_id_str.clone(),
+                            stage_name: stage.clone(),
+                            content: line.content.clone(),
+                            stream: stream.to_string(),
+                        });
                     }
                     buildit_scheduler::PipelineEvent::PipelineCompleted { success } => {
                         tracing::info!(run_id = %run_id, success = %success, "Pipeline completed");
+                        // Broadcast run completion event
+                        let status = if success { "succeeded" } else { "failed" };
+                        broadcaster_clone.send(crate::ws::BroadcastEvent::RunUpdate {
+                            run_id: run_id_str.clone(),
+                            status: status.to_string(),
+                        });
                     }
                 }
             }

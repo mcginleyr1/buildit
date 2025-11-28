@@ -15,6 +15,7 @@ pub struct PipelineRecord {
     pub tenant_id: uuid::Uuid,
     pub name: String,
     pub repository: String,
+    pub repository_id: Option<uuid::Uuid>,
     pub config: serde_json::Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -73,6 +74,7 @@ pub trait PipelineRepo: Send + Sync {
     ) -> DbResult<PipelineRecord>;
     async fn get_by_id(&self, id: ResourceId) -> DbResult<PipelineRecord>;
     async fn list_by_tenant(&self, tenant_id: ResourceId) -> DbResult<Vec<PipelineRecord>>;
+    async fn list_by_repository(&self, repository_id: ResourceId) -> DbResult<Vec<PipelineRecord>>;
     async fn update_config(
         &self,
         id: ResourceId,
@@ -181,6 +183,16 @@ impl PipelineRepo for PgPipelineRepo {
             "SELECT * FROM pipelines WHERE tenant_id = $1 ORDER BY name",
         )
         .bind(tenant_id.as_uuid())
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(records)
+    }
+
+    async fn list_by_repository(&self, repository_id: ResourceId) -> DbResult<Vec<PipelineRecord>> {
+        let records = sqlx::query_as::<_, PipelineRecord>(
+            "SELECT * FROM pipelines WHERE repository_id = $1 ORDER BY name",
+        )
+        .bind(repository_id.as_uuid())
         .fetch_all(&self.pool)
         .await?;
         Ok(records)

@@ -10,6 +10,9 @@ pub enum DbError {
     #[error("duplicate: {0}")]
     Duplicate(String),
 
+    #[error("invalid data: {0}")]
+    InvalidData(String),
+
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 

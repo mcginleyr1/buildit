@@ -1,9 +1,12 @@
 //! Application state.
 
+use buildit_db::PgApplicationRepo;
 use buildit_db::PgDeploymentRepo;
 use buildit_db::PgLogRepo;
 use buildit_db::PgOrganizationRepo;
 use buildit_db::PgPipelineRepo;
+use buildit_db::PgRepositoryRepo;
+use buildit_db::PgStackRepo;
 use buildit_db::PgTenantRepo;
 
 use crate::ws::Broadcaster;
@@ -57,6 +60,9 @@ pub struct AppState {
     pub pipeline_repo: Arc<PgPipelineRepo>,
     pub deployment_repo: Arc<PgDeploymentRepo>,
     pub organization_repo: Arc<PgOrganizationRepo>,
+    pub repository_repo: Arc<PgRepositoryRepo>,
+    pub stack_repo: Arc<PgStackRepo>,
+    pub application_repo: Arc<PgApplicationRepo>,
     pub log_repo: Arc<PgLogRepo>,
     pub broadcaster: Arc<Broadcaster>,
     pub orchestrator: Option<Arc<PipelineOrchestrator>>,
@@ -68,6 +74,9 @@ impl AppState {
         let pipeline_repo = Arc::new(PgPipelineRepo::new(pool.clone()));
         let deployment_repo = Arc::new(PgDeploymentRepo::new(pool.clone()));
         let organization_repo = Arc::new(PgOrganizationRepo::new(pool.clone()));
+        let repository_repo = Arc::new(PgRepositoryRepo::new(pool.clone()));
+        let stack_repo = Arc::new(PgStackRepo::new(pool.clone()));
+        let application_repo = Arc::new(PgApplicationRepo::new(pool.clone()));
         let log_repo = Arc::new(PgLogRepo::new(pool.clone()));
         let broadcaster = Arc::new(Broadcaster::new());
 
@@ -80,6 +89,9 @@ impl AppState {
             pipeline_repo,
             deployment_repo,
             organization_repo,
+            repository_repo,
+            stack_repo,
+            application_repo,
             log_repo,
             broadcaster,
             orchestrator,

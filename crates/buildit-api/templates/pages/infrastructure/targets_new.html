@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}New Target - BuildIt{% endblock %}
+
+{% block nav_targets %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
+<a href="/targets" class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Targets</a>
+<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+</svg>
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">New Target</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Add Deployment Target</h1>
+        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Configure an infrastructure target for deployments.</p>
+    </div>
+
+    <form id="create-target-form" class="space-y-6">
+        <!-- Basic Info -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Basic Information</h2>
+            
+            <div>
+                <label for="name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Name</label>
+                <input type="text" id="name" name="name" required
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="production-cluster">
+            </div>
+
+            <div>
+                <label for="target_type" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Type</label>
+                <select id="target_type" name="target_type" required onchange="updateConfigFields()"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">Select target type...</option>
+                    <option value="kubernetes">Kubernetes</option>
+                    <option value="fly">Fly.io</option>
+                    <option value="docker">Docker</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="region" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Region</label>
+                <input type="text" id="region" name="region"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="us-east-1">
+            </div>
+        </div>
+
+        <!-- Kubernetes Config -->
+        <div id="kubernetes-config" class="hidden bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Kubernetes Configuration</h2>
+            
+            <div>
+                <label for="k8s_context" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Context Name</label>
+                <input type="text" id="k8s_context" name="k8s_context"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="my-cluster-context">
+            </div>
+
+            <div>
+                <label for="k8s_namespace" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Default Namespace</label>
+                <input type="text" id="k8s_namespace" name="k8s_namespace" value="default"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="kubeconfig" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Kubeconfig (base64)</label>
+                <textarea id="kubeconfig" name="kubeconfig" rows="4"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="base64 encoded kubeconfig..."></textarea>
+                <p class="mt-1 text-xs text-zinc-500">Leave empty to use in-cluster config or default kubeconfig</p>
+            </div>
+        </div>
+
+        <!-- Fly.io Config -->
+        <div id="fly-config" class="hidden bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Fly.io Configuration</h2>
+            
+            <div>
+                <label for="fly_org" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Organization</label>
+                <input type="text" id="fly_org" name="fly_org"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="my-org">
+            </div>
+
+            <div>
+                <label for="fly_token" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">API Token</label>
+                <input type="password" id="fly_token" name="fly_token"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="fo1_...">
+            </div>
+        </div>
+
+        <!-- Docker Config -->
+        <div id="docker-config" class="hidden bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Docker Configuration</h2>
+            
+            <div>
+                <label for="docker_host" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Docker Host</label>
+                <input type="text" id="docker_host" name="docker_host"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="unix:///var/run/docker.sock or tcp://host:2376">
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3">
+            <a href="/targets" class="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">
+                Cancel
+            </a>
+            <button type="submit"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                Create Target
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function updateConfigFields() {
+    const targetType = document.getElementById('target_type').value;
+    
+    document.getElementById('kubernetes-config').classList.add('hidden');
+    document.getElementById('fly-config').classList.add('hidden');
+    document.getElementById('docker-config').classList.add('hidden');
+    
+    if (targetType === 'kubernetes') {
+        document.getElementById('kubernetes-config').classList.remove('hidden');
+    } else if (targetType === 'fly') {
+        document.getElementById('fly-config').classList.remove('hidden');
+    } else if (targetType === 'docker') {
+        document.getElementById('docker-config').classList.remove('hidden');
+    }
+}
+
+document.getElementById('create-target-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const targetType = formData.get('target_type');
+    
+    const config = {};
+    if (targetType === 'kubernetes') {
+        config.context = formData.get('k8s_context') || null;
+        config.namespace = formData.get('k8s_namespace') || 'default';
+        config.kubeconfig = formData.get('kubeconfig') || null;
+    } else if (targetType === 'fly') {
+        config.org = formData.get('fly_org') || null;
+        config.token = formData.get('fly_token') || null;
+    } else if (targetType === 'docker') {
+        config.host = formData.get('docker_host') || null;
+    }
+    
+    const data = {
+        name: formData.get('name'),
+        target_type: targetType,
+        region: formData.get('region') || null,
+        config: config
+    };
+    
+    try {
+        const response = await fetch('/api/v1/deployment/targets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            window.location.href = '/targets';
+        } else {
+            const error = await response.json();
+            alert('Error: ' + (error.message || 'Failed to create target'));
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+</script>
+{% endblock %}

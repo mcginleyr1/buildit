@@ -34,3 +34,18 @@ chrono.workspace = true
 anyhow.workspace = true
 askama.workspace = true
 askama_web.workspace = true
+
+# For git/webhook services
+md5.workspace = true
+hmac.workspace = true
+sha2.workspace = true
+hex.workspace = true
+async-recursion.workspace = true
+
+# For GitHub API
+reqwest.workspace = true
+urlencoding.workspace = true
+
+# Cookie handling
+axum-extra.workspace = true
+time.workspace = true

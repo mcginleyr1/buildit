@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="flex gap-6" hx-ext="ws" ws-connect="/ws">
+<div class="flex gap-6">
     <!-- Left Panel: Run Summary + Jobs List -->
     <div class="w-80 flex-shrink-0 space-y-4">
         <!-- Run Summary Card -->
@@ -185,53 +185,93 @@
                 <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Pipeline Flow</h3>
             </div>
             <div class="p-4 overflow-x-auto">
-                <div class="inline-flex items-center gap-2 min-w-max">
+                <svg id="dag-svg" width="{{ dag_width }}" height="{{ dag_height }}" class="min-w-max">
+                    <defs>
+                        <!-- Arrow markers for edges -->
+                        <marker id="arrow-succeeded" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L8,4 L0,8 L2,4 Z" fill="#22c55e" />
+                        </marker>
+                        <marker id="arrow-failed" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L8,4 L0,8 L2,4 Z" fill="#ef4444" />
+                        </marker>
+                        <marker id="arrow-running" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L8,4 L0,8 L2,4 Z" fill="#3b82f6" />
+                        </marker>
+                        <marker id="arrow-pending" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L8,4 L0,8 L2,4 Z" fill="#71717a" />
+                        </marker>
+                        <!-- Glow filter for running nodes -->
+                        <filter id="glow-blue" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="3" result="blur" />
+                            <feFlood flood-color="#3b82f6" flood-opacity="0.5" />
+                            <feComposite in2="blur" operator="in" />
+                            <feMerge>
+                                <feMergeNode />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                    </defs>
+
+                    <!-- Edges (drawn first so nodes appear on top) -->
+                    {% for edge in edges %}
+                    <path
+                        d="M{{ edge.from_x }},{{ edge.from_y }} C{{ edge.from_x + 50 }},{{ edge.from_y + edge.control_offset }} {{ edge.to_x - 50 }},{{ edge.to_y + edge.control_offset }} {{ edge.to_x }},{{ edge.to_y }}"
+                        fill="none"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        class="{% if edge.from_status == "succeeded" %}stroke-green-500{% else if edge.from_status == "failed" %}stroke-red-500{% else if edge.from_status == "running" %}stroke-blue-500{% else %}stroke-zinc-400 dark:stroke-zinc-600{% endif %}"
+                        marker-end="url(#arrow-{{ edge.from_status }})"
+                    />
+                    {% endfor %}
+
+                    <!-- Stage Nodes -->
                     {% for stage in stages %}
-                    <!-- Stage Node -->
-                    <button
-                        onclick="selectJob('{{ stage.name }}')"
-                        class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all hover:scale-105
-                            {% if stage.status == "succeeded" %}
-                                bg-green-500/10 border-green-500/30 hover:border-green-500
-                            {% else if stage.status == "failed" %}
-                                bg-red-500/10 border-red-500/30 hover:border-red-500
-                            {% else if stage.status == "running" %}
-                                bg-blue-500/10 border-blue-500/30 hover:border-blue-500
-                            {% else %}
-                                bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400
-                            {% endif %}"
-                    >
-                        <!-- Status indicator -->
+                    <g class="cursor-pointer stage-node" onclick="selectJob('{{ stage.name }}')" data-stage="{{ stage.name }}">
+                        <!-- Node background -->
+                        <rect
+                            x="{{ stage.x }}"
+                            y="{{ stage.y }}"
+                            width="140"
+                            height="60"
+                            rx="8"
+                            class="{% if stage.status == "succeeded" %}fill-green-500/20 stroke-green-500{% else if stage.status == "failed" %}fill-red-500/20 stroke-red-500{% else if stage.status == "running" %}fill-blue-500/20 stroke-blue-500{% else %}fill-zinc-100 dark:fill-zinc-800 stroke-zinc-300 dark:stroke-zinc-600{% endif %}"
+                            stroke-width="2"
+                            {% if stage.status == "running" %}filter="url(#glow-blue)"{% endif %}
+                        />
+
+                        <!-- Status icon -->
                         {% if stage.status == "succeeded" %}
-                        <div class="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                            <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
+                        <circle cx="{{ stage.x + 24 }}" cy="{{ stage.y + 30 }}" r="10" fill="#22c55e" />
+                        <path d="M{{ stage.x + 19 }},{{ stage.y + 30 }} l3,3 l6,-6" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                         {% else if stage.status == "failed" %}
-                        <div class="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
-                            <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </div>
+                        <circle cx="{{ stage.x + 24 }}" cy="{{ stage.y + 30 }}" r="10" fill="#ef4444" />
+                        <path d="M{{ stage.x + 20 }},{{ stage.y + 26 }} l8,8 M{{ stage.x + 28 }},{{ stage.y + 26 }} l-8,8" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" />
                         {% else if stage.status == "running" %}
-                        <div class="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                        <circle cx="{{ stage.x + 24 }}" cy="{{ stage.y + 30 }}" r="10" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="20 10" class="animate-spin origin-center" style="transform-origin: {{ stage.x + 24 }}px {{ stage.y + 30 }}px">
+                            <animateTransform attributeName="transform" type="rotate" from="0 {{ stage.x + 24 }} {{ stage.y + 30 }}" to="360 {{ stage.x + 24 }} {{ stage.y + 30 }}" dur="1s" repeatCount="indefinite" />
+                        </circle>
                         {% else %}
-                        <div class="w-4 h-4 rounded-full border-2 border-zinc-300 dark:border-zinc-600"></div>
+                        <circle cx="{{ stage.x + 24 }}" cy="{{ stage.y + 30 }}" r="10" fill="none" stroke="#71717a" stroke-width="2" />
                         {% endif %}
 
-                        <span class="text-xs font-medium text-zinc-900 dark:text-zinc-100">{{ stage.name }}</span>
-                        <span class="text-xs text-zinc-500">{{ stage.duration }}</span>
-                    </button>
+                        <!-- Stage name -->
+                        <text
+                            x="{{ stage.x + 44 }}"
+                            y="{{ stage.y + 26 }}"
+                            class="text-xs font-semibold fill-zinc-900 dark:fill-zinc-100"
+                            style="font-size: 12px; font-weight: 600;"
+                        >{{ stage.name }}</text>
 
-                    <!-- Arrow connector -->
-                    {% if !loop.last %}
-                    <svg class="w-5 h-5 text-zinc-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                    {% endif %}
+                        <!-- Duration -->
+                        <text
+                            x="{{ stage.x + 44 }}"
+                            y="{{ stage.y + 42 }}"
+                            class="text-xs fill-zinc-500 dark:fill-zinc-400"
+                            style="font-size: 11px; font-family: 'JetBrains Mono', monospace;"
+                        >{{ stage.duration }}</text>
+                    </g>
                     {% endfor %}
-                </div>
+                </svg>
             </div>
         </div>
 
@@ -410,30 +450,158 @@
     document.addEventListener('DOMContentLoaded', function() {
         const firstJob = '{{ first_stage_name }}';
         if (firstJob) selectJob(firstJob);
+
+        // Connect to WebSocket for live updates
+        connectWebSocket();
     });
 
-    // WebSocket handler for live updates
-    document.body.addEventListener("htmx:wsAfterMessage", function(event) {
-        try {
-            const data = JSON.parse(event.detail.message);
-            if (data.type === "stage_update") {
-                stages[data.stage_name] = { status: data.status, duration: data.duration || '-' };
-                // Re-render job list item
-                // TODO: implement live update
-            } else if (data.type === "log_line") {
-                // Append to current log view if it's the selected job
-                const currentJob = document.getElementById('selected-job-name').textContent;
-                if (data.stage === currentJob) {
-                    const logOutput = document.getElementById('log-output');
-                    const lineCount = logOutput.querySelectorAll('.flex').length + 1;
-                    const line = document.createElement('div');
-                    line.className = 'flex';
-                    line.innerHTML = `<span class="w-12 text-zinc-600 select-none flex-shrink-0">${lineCount}</span><span class="text-zinc-400">${data.line}</span>`;
-                    logOutput.querySelector('.space-y-0\\.5').appendChild(line);
-                    logOutput.scrollTop = logOutput.scrollHeight;
-                }
+    let ws = null;
+    let wsReconnectAttempts = 0;
+
+    function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = function() {
+            console.log('WebSocket connected');
+            wsReconnectAttempts = 0;
+
+            // Subscribe to this run's channel
+            ws.send(JSON.stringify({
+                type: 'subscribe',
+                channel: `run:${runId}`
+            }));
+        };
+
+        ws.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                handleWsMessage(data);
+            } catch (e) {
+                console.error('Failed to parse WebSocket message:', e);
             }
-        } catch (e) {}
-    });
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket disconnected');
+            // Reconnect with exponential backoff
+            if (wsReconnectAttempts < 5) {
+                const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
+                wsReconnectAttempts++;
+                setTimeout(connectWebSocket, delay);
+            }
+        };
+
+        ws.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+    }
+
+    function handleWsMessage(data) {
+        if (data.type === 'stage_update') {
+            // Update stage status
+            stages[data.stage_name] = {
+                status: data.status,
+                duration: data.duration || stages[data.stage_name]?.duration || '-'
+            };
+
+            // Update job list item visually
+            updateJobListItem(data.stage_name, data.status);
+
+            // Update if this is the selected job
+            const currentJob = document.getElementById('selected-job-name').textContent;
+            if (data.stage_name === currentJob) {
+                updateSelectedJobStatus(data.status);
+            }
+        } else if (data.type === 'log_line') {
+            // Append to current log view if it's the selected job
+            const currentJob = document.getElementById('selected-job-name').textContent;
+            if (data.stage_name === currentJob) {
+                appendLogLine(data.content, data.stream);
+            }
+        } else if (data.type === 'run_update') {
+            // Page could be refreshed to show final state
+            if (data.status === 'succeeded' || data.status === 'failed') {
+                // Optionally refresh the page to get final state
+                // window.location.reload();
+            }
+        }
+    }
+
+    function updateJobListItem(stageName, status) {
+        const jobEl = document.getElementById('job-' + stageName);
+        if (!jobEl) return;
+
+        const statusIcon = jobEl.querySelector('div:first-child');
+        if (!statusIcon) return;
+
+        // Reset classes
+        statusIcon.className = 'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0';
+
+        if (status === 'succeeded') {
+            statusIcon.classList.add('bg-green-500');
+            statusIcon.innerHTML = '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>';
+        } else if (status === 'failed') {
+            statusIcon.classList.add('bg-red-500');
+            statusIcon.innerHTML = '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>';
+        } else if (status === 'running') {
+            statusIcon.classList.add('border-2', 'border-blue-500', 'border-t-transparent', 'animate-spin');
+            statusIcon.innerHTML = '';
+        } else {
+            statusIcon.classList.add('border-2', 'border-zinc-300', 'dark:border-zinc-600');
+            statusIcon.innerHTML = '';
+        }
+    }
+
+    function updateSelectedJobStatus(status) {
+        const statusEl = document.getElementById('selected-job-status');
+        statusEl.className = 'w-5 h-5 rounded-full flex items-center justify-center';
+
+        if (status === 'succeeded') {
+            statusEl.classList.add('bg-green-500');
+            statusEl.innerHTML = '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>';
+        } else if (status === 'failed') {
+            statusEl.classList.add('bg-red-500');
+            statusEl.innerHTML = '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>';
+        } else if (status === 'running') {
+            statusEl.classList.add('border-2', 'border-blue-500', 'border-t-transparent', 'animate-spin');
+            statusEl.innerHTML = '';
+        } else {
+            statusEl.classList.add('border-2', 'border-zinc-400');
+            statusEl.innerHTML = '';
+        }
+    }
+
+    function appendLogLine(content, stream) {
+        const logOutput = document.getElementById('log-output');
+        const logsContainer = logOutput.querySelector('.space-y-0\\.5');
+        if (!logsContainer) return;
+
+        const lineCount = logsContainer.querySelectorAll('.flex').length + 1;
+
+        // Color based on stream
+        let contentClass = 'text-zinc-300';
+        if (stream === 'stderr') {
+            contentClass = 'text-red-400';
+        } else if (stream === 'system') {
+            contentClass = 'text-blue-400';
+        }
+
+        // Escape HTML
+        const escapedContent = content
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        const line = document.createElement('div');
+        line.className = 'flex';
+        line.innerHTML = `<span class="w-12 text-zinc-600 select-none flex-shrink-0">${lineCount}</span><span class="${contentClass}">${escapedContent}</span>`;
+        logsContainer.appendChild(line);
+
+        // Auto-scroll to bottom
+        logOutput.scrollTop = logOutput.scrollHeight;
+    }
 </script>
 {% endblock %}

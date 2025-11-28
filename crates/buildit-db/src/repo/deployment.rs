@@ -111,6 +111,17 @@ pub trait DeploymentRepo: Send + Sync {
     // Targets
     async fn list_targets(&self, tenant_id: ResourceId) -> DbResult<Vec<Target>>;
     async fn get_target(&self, id: ResourceId) -> DbResult<Target>;
+    async fn create_target(
+        &self,
+        tenant_id: ResourceId,
+        name: &str,
+        target_type: &str,
+        region: Option<&str>,
+        config: serde_json::Value,
+    ) -> DbResult<Target>;
+    async fn update_target_config(&self, id: ResourceId, config: serde_json::Value)
+    -> DbResult<()>;
+    async fn delete_target(&self, id: ResourceId) -> DbResult<()>;
 
     // Environments
     async fn list_environments(
@@ -118,7 +129,26 @@ pub trait DeploymentRepo: Send + Sync {
         tenant_id: ResourceId,
     ) -> DbResult<Vec<EnvironmentWithTarget>>;
     async fn get_environment(&self, id: ResourceId) -> DbResult<Environment>;
+    async fn get_environment_by_name(
+        &self,
+        tenant_id: ResourceId,
+        name: &str,
+    ) -> DbResult<Option<Environment>>;
+    async fn create_environment(
+        &self,
+        tenant_id: ResourceId,
+        target_id: ResourceId,
+        name: &str,
+        config: serde_json::Value,
+    ) -> DbResult<Environment>;
+    async fn update_environment_from_stack(
+        &self,
+        id: ResourceId,
+        stack_id: ResourceId,
+        stack_outputs: serde_json::Value,
+    ) -> DbResult<()>;
     async fn count_services_in_environment(&self, env_id: ResourceId) -> DbResult<i64>;
+    async fn delete_environment(&self, id: ResourceId) -> DbResult<()>;
 
     // Services
     async fn list_services(&self, tenant_id: ResourceId) -> DbResult<Vec<Service>>;
@@ -169,6 +199,53 @@ impl DeploymentRepo for PgDeploymentRepo {
         Ok(target)
     }
 
+    async fn create_target(
+        &self,
+        tenant_id: ResourceId,
+        name: &str,
+        target_type: &str,
+        region: Option<&str>,
+        config: serde_json::Value,
+    ) -> DbResult<Target> {
+        let target = sqlx::query_as::<_, Target>(
+            r#"
+            INSERT INTO targets (id, tenant_id, name, target_type, status, region, config, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, 'connected', $5, $6, NOW(), NOW())
+            RETURNING *
+            "#,
+        )
+        .bind(uuid::Uuid::now_v7())
+        .bind(tenant_id.as_uuid())
+        .bind(name)
+        .bind(target_type)
+        .bind(region)
+        .bind(config)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(target)
+    }
+
+    async fn update_target_config(
+        &self,
+        id: ResourceId,
+        config: serde_json::Value,
+    ) -> DbResult<()> {
+        sqlx::query("UPDATE targets SET config = $2, updated_at = NOW() WHERE id = $1")
+            .bind(id.as_uuid())
+            .bind(config)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    async fn delete_target(&self, id: ResourceId) -> DbResult<()> {
+        sqlx::query("DELETE FROM targets WHERE id = $1")
+            .bind(id.as_uuid())
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     async fn list_environments(
         &self,
         tenant_id: ResourceId,
@@ -197,6 +274,62 @@ impl DeploymentRepo for PgDeploymentRepo {
         Ok(env)
     }
 
+    async fn get_environment_by_name(
+        &self,
+        tenant_id: ResourceId,
+        name: &str,
+    ) -> DbResult<Option<Environment>> {
+        let env = sqlx::query_as::<_, Environment>(
+            "SELECT * FROM environments WHERE tenant_id = $1 AND name = $2",
+        )
+        .bind(tenant_id.as_uuid())
+        .bind(name)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(env)
+    }
+
+    async fn create_environment(
+        &self,
+        tenant_id: ResourceId,
+        target_id: ResourceId,
+        name: &str,
+        config: serde_json::Value,
+    ) -> DbResult<Environment> {
+        let env = sqlx::query_as::<_, Environment>(
+            r#"
+            INSERT INTO environments (id, tenant_id, target_id, name, health_status, config, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, 'unknown', $5, NOW(), NOW())
+            RETURNING *
+            "#,
+        )
+        .bind(uuid::Uuid::now_v7())
+        .bind(tenant_id.as_uuid())
+        .bind(target_id.as_uuid())
+        .bind(name)
+        .bind(config)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(env)
+    }
+
+    async fn update_environment_from_stack(
+        &self,
+        id: ResourceId,
+        stack_id: ResourceId,
+        stack_outputs: serde_json::Value,
+    ) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE environments SET stack_id = $2, stack_outputs = $3, updated_at = NOW() WHERE id = $1",
+        )
+        .bind(id.as_uuid())
+        .bind(stack_id.as_uuid())
+        .bind(stack_outputs)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     async fn count_services_in_environment(&self, env_id: ResourceId) -> DbResult<i64> {
         let count: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM service_environments WHERE environment_id = $1")
@@ -204,6 +337,14 @@ impl DeploymentRepo for PgDeploymentRepo {
                 .fetch_one(&self.pool)
                 .await?;
         Ok(count.0)
+    }
+
+    async fn delete_environment(&self, id: ResourceId) -> DbResult<()> {
+        sqlx::query("DELETE FROM environments WHERE id = $1")
+            .bind(id.as_uuid())
+            .execute(&self.pool)
+            .await?;
+        Ok(())
     }
 
     async fn list_services(&self, tenant_id: ResourceId) -> DbResult<Vec<Service>> {

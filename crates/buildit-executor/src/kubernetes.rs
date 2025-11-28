@@ -93,6 +93,10 @@ impl KubernetesExecutor {
 
     /// Build a Kubernetes Job from our JobSpec.
     fn build_k8s_job(&self, spec: &JobSpec) -> Job {
+        use k8s_openapi::api::core::v1::{
+            EmptyDirVolumeSource, Volume, VolumeMount as K8sVolumeMount,
+        };
+
         let job_name = Self::job_name(&spec.id);
 
         // Build environment variables
@@ -141,7 +145,84 @@ impl KubernetesExecutor {
             })
         };
 
-        // Build the container
+        // Check if we need to clone a git repo
+        let (init_containers, volumes, container_volume_mounts, working_dir) =
+            if let Some(ref git_clone) = spec.git_clone {
+                // Build git clone command
+                let mut clone_cmd = vec!["sh".to_string(), "-c".to_string()];
+
+                // Build the clone URL with auth if token provided
+                let clone_url = if let Some(ref token) = git_clone.access_token {
+                    if git_clone.url.starts_with("https://") {
+                        git_clone
+                            .url
+                            .replacen("https://", &format!("https://{}@", token), 1)
+                    } else {
+                        git_clone.url.clone()
+                    }
+                } else {
+                    git_clone.url.clone()
+                };
+
+                let depth_arg = git_clone
+                    .depth
+                    .map(|d| format!("--depth {}", d))
+                    .unwrap_or_default();
+
+                let branch_arg = git_clone
+                    .branch
+                    .as_ref()
+                    .map(|b| format!("-b {}", b))
+                    .unwrap_or_default();
+
+                // Clone command, optionally checkout specific SHA
+                let checkout_cmd = git_clone
+                    .sha
+                    .as_ref()
+                    .map(|sha| format!(" && git checkout {}", sha))
+                    .unwrap_or_default();
+
+                let script = format!(
+                    "git clone {} {} {} {}{}",
+                    depth_arg, branch_arg, clone_url, &git_clone.target_dir, checkout_cmd
+                );
+                clone_cmd.push(script);
+
+                let init_container = Container {
+                    name: "git-clone".to_string(),
+                    image: Some("alpine/git:latest".to_string()),
+                    command: Some(clone_cmd),
+                    volume_mounts: Some(vec![K8sVolumeMount {
+                        name: "workspace".to_string(),
+                        mount_path: "/workspace".to_string(),
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                };
+
+                let volume = Volume {
+                    name: "workspace".to_string(),
+                    empty_dir: Some(EmptyDirVolumeSource::default()),
+                    ..Default::default()
+                };
+
+                let volume_mount = K8sVolumeMount {
+                    name: "workspace".to_string(),
+                    mount_path: git_clone.target_dir.clone(),
+                    ..Default::default()
+                };
+
+                (
+                    Some(vec![init_container]),
+                    Some(vec![volume]),
+                    Some(vec![volume_mount]),
+                    Some(git_clone.target_dir.clone()),
+                )
+            } else {
+                (None, None, None, spec.working_dir.clone())
+            };
+
+        // Build the main container
         let container = Container {
             name: "job".to_string(),
             image: Some(spec.image.clone()),
@@ -150,13 +231,14 @@ impl KubernetesExecutor {
             } else {
                 Some(spec.command.clone())
             },
-            working_dir: spec.working_dir.clone(),
+            working_dir,
             env: if env_vars.is_empty() {
                 None
             } else {
                 Some(env_vars)
             },
             resources,
+            volume_mounts: container_volume_mounts,
             image_pull_policy: Some("IfNotPresent".to_string()),
             ..Default::default()
         };
@@ -182,7 +264,9 @@ impl KubernetesExecutor {
                         ..Default::default()
                     }),
                     spec: Some(PodSpec {
+                        init_containers,
                         containers: vec![container],
+                        volumes,
                         restart_policy: Some("Never".to_string()),
                         ..Default::default()
                     }),
@@ -299,6 +383,8 @@ impl Executor for KubernetesExecutor {
         // Spawn a task to poll logs
         tokio::spawn(async move {
             let mut last_seen_lines = 0usize;
+            let mut consecutive_errors = 0u32;
+            let max_errors = 120; // ~60 seconds of retries at 500ms intervals
 
             loop {
                 let log_params = LogParams {
@@ -310,6 +396,7 @@ impl Executor for KubernetesExecutor {
 
                 match pods_api_clone.logs(&pod_name_clone, &log_params).await {
                     Ok(logs) => {
+                        consecutive_errors = 0; // Reset error counter on success
                         let lines: Vec<&str> = logs.lines().collect();
 
                         // Send only new lines
@@ -347,9 +434,58 @@ impl Executor for KubernetesExecutor {
                         last_seen_lines = lines.len();
                     }
                     Err(e) => {
-                        // Pod might have completed or been deleted
-                        debug!(error = %e, "Log polling ended");
-                        break;
+                        let err_str = e.to_string();
+                        // Check if it's a transient error (container not ready yet)
+                        if err_str.contains("ContainerCreating")
+                            || err_str.contains("PodInitializing")
+                        {
+                            consecutive_errors += 1;
+                            if consecutive_errors >= max_errors {
+                                debug!(error = %e, "Log polling timed out waiting for container");
+                                break;
+                            }
+                            // Continue waiting for container to start
+                        } else if err_str.contains("not found") || err_str.contains("Completed") {
+                            // Pod completed or deleted - check one more time for final logs
+                            if let Ok(final_logs) =
+                                pods_api_clone.logs(&pod_name_clone, &log_params).await
+                            {
+                                let lines: Vec<&str> = final_logs.lines().collect();
+                                for line in lines.iter().skip(last_seen_lines) {
+                                    let content = line.to_string();
+                                    let (timestamp, message) = if content.len() > 30
+                                        && content.chars().nth(4) == Some('-')
+                                    {
+                                        let ts_end = content.find(' ').unwrap_or(30).min(35);
+                                        let ts_str = &content[..ts_end];
+                                        match chrono::DateTime::parse_from_rfc3339(ts_str.trim()) {
+                                            Ok(ts) => (
+                                                ts.with_timezone(&Utc),
+                                                content.get(ts_end + 1..).unwrap_or("").to_string(),
+                                            ),
+                                            Err(_) => (Utc::now(), content.clone()),
+                                        }
+                                    } else {
+                                        (Utc::now(), content.clone())
+                                    };
+                                    let _ = tx
+                                        .send(LogLine {
+                                            timestamp,
+                                            stream: LogStream::Stdout,
+                                            content: message.trim_end().to_string(),
+                                        })
+                                        .await;
+                                }
+                            }
+                            debug!(error = %e, "Log polling ended - pod completed");
+                            break;
+                        } else {
+                            consecutive_errors += 1;
+                            if consecutive_errors >= 10 {
+                                debug!(error = %e, "Log polling ended after errors");
+                                break;
+                            }
+                        }
                     }
                 }
 

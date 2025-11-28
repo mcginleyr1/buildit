@@ -88,13 +88,67 @@ impl Executor for LocalDockerExecutor {
             .map(|(k, v)| format!("{}={}", k, v))
             .collect();
 
-        // Build the command
-        // If command is empty, use shell to run nothing (container will use default)
-        let cmd = if spec.command.is_empty() {
+        // Build the command, prepending git clone if needed
+        let cmd = if let Some(ref git_clone) = spec.git_clone {
+            // Build git clone command
+            let clone_url = if let Some(ref token) = git_clone.access_token {
+                if git_clone.url.starts_with("https://") {
+                    git_clone
+                        .url
+                        .replacen("https://", &format!("https://{}@", token), 1)
+                } else {
+                    git_clone.url.clone()
+                }
+            } else {
+                git_clone.url.clone()
+            };
+
+            let depth_arg = git_clone
+                .depth
+                .map(|d| format!("--depth {}", d))
+                .unwrap_or_default();
+
+            let branch_arg = git_clone
+                .branch
+                .as_ref()
+                .map(|b| format!("-b {}", b))
+                .unwrap_or_default();
+
+            let checkout_cmd = git_clone
+                .sha
+                .as_ref()
+                .map(|sha| format!(" && git checkout {}", sha))
+                .unwrap_or_default();
+
+            let clone_script = format!(
+                "git clone {} {} {} {}{}",
+                depth_arg, branch_arg, clone_url, &git_clone.target_dir, checkout_cmd
+            );
+
+            // Combine clone with original commands
+            let user_cmds = spec.command.join(" && ");
+            let full_script = if user_cmds.is_empty() {
+                clone_script
+            } else {
+                format!(
+                    "{} && cd {} && {}",
+                    clone_script, &git_clone.target_dir, user_cmds
+                )
+            };
+
+            Some(vec!["sh".to_string(), "-c".to_string(), full_script])
+        } else if spec.command.is_empty() {
             None
         } else {
             Some(spec.command.clone())
         };
+
+        // Determine working directory
+        let working_dir = spec
+            .git_clone
+            .as_ref()
+            .map(|gc| gc.target_dir.clone())
+            .or(spec.working_dir.clone());
 
         // Build volume binds from spec.volumes
         let binds: Option<Vec<String>> = if spec.volumes.is_empty() {
@@ -121,7 +175,7 @@ impl Executor for LocalDockerExecutor {
             image: Some(spec.image.clone()),
             cmd,
             env: Some(env),
-            working_dir: spec.working_dir.clone(),
+            working_dir,
             attach_stdout: Some(true),
             attach_stderr: Some(true),
             tty: Some(false),

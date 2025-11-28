@@ -73,6 +73,23 @@ bytes = "1"
 derive_more = { version = "1", features = ["display", "from"] }
 regex = "1"
 
+# Crypto/hashing
+md5 = "0.7"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+
+# Async utilities
+async-recursion = "1"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json"] }
+urlencoding = "2"
+
+# Cookie/session handling
+axum-extra = { version = "0.10", features = ["cookie"] }
+time = "0.3"
+
 # Internal crates
 buildit-core = { path = "crates/buildit-core" }
 buildit-config = { path = "crates/buildit-config" }

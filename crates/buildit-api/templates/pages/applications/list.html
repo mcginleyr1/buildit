@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Applications - BuildIt{% endblock %}
+
+{% block nav_applications %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">Applications</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Applications</h1>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">GitOps deployments to Kubernetes.</p>
+        </div>
+        <a href="/applications/new" class="bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New Application
+        </a>
+    </div>
+
+    {% if has_applications %}
+    <!-- Application list -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for app in applications %}
+        <a href="/applications/{{ app.id }}" class="block bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-5 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group">
+            <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ app.name }}</div>
+                        <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ app.target_namespace }}</div>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end gap-1">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if app.sync_status == "synced" %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% elif app.sync_status == "out_of_sync" %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300{% elif app.sync_status == "syncing" %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300{% else %}bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300{% endif %}">
+                        {{ app.sync_status }}
+                    </span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if app.health_status == "healthy" %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% elif app.health_status == "progressing" %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300{% elif app.health_status == "degraded" %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% else %}bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300{% endif %}">
+                        {{ app.health_status }}
+                    </span>
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-zinc-500 dark:text-zinc-400">{{ app.path }}</span>
+                    {% if app.has_last_sync %}
+                    <span class="text-zinc-500 dark:text-zinc-400">{{ app.last_synced_ago }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty state -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-12 text-center">
+        <svg class="w-12 h-12 mx-auto text-zinc-400 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-zinc-900 dark:text-zinc-100">No applications configured</h3>
+        <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Create an application to deploy Kubernetes manifests via GitOps.</p>
+        <a href="/applications/new" class="mt-6 inline-flex items-center gap-2 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New Application
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

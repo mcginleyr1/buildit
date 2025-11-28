@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}New Stack - BuildIt{% endblock %}
+
+{% block nav_stacks %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
+<a href="/stacks" class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Stacks</a>
+<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+</svg>
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">New Stack</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Create Terraform Stack</h1>
+        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Manage infrastructure as code with Terraform.</p>
+    </div>
+
+    <form id="create-stack-form" class="space-y-6">
+        <!-- Basic Info -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Basic Information</h2>
+            
+            <div>
+                <label for="name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Name</label>
+                <input type="text" id="name" name="name" required
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="production-vpc">
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Description</label>
+                <textarea id="description" name="description" rows="2"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="Optional description"></textarea>
+            </div>
+        </div>
+
+        <!-- Source -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Source</h2>
+            
+            <div>
+                <label for="repository_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Repository</label>
+                <select id="repository_id" name="repository_id"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">Select a repository...</option>
+                    {% for repo in repositories %}
+                    <option value="{{ repo.id }}">{{ repo.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="path" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Path</label>
+                <input type="text" id="path" name="path" value="."
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="terraform/ or infra/aws/">
+                <p class="mt-1 text-xs text-zinc-500">Path to Terraform configuration in the repository</p>
+            </div>
+        </div>
+
+        <!-- Terraform Settings -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Terraform Settings</h2>
+            
+            <div>
+                <label for="terraform_version" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Terraform Version</label>
+                <select id="terraform_version" name="terraform_version"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="1.9">1.9 (latest)</option>
+                    <option value="1.8">1.8</option>
+                    <option value="1.7">1.7</option>
+                    <option value="1.6">1.6</option>
+                    <option value="1.5">1.5</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="workspace" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Workspace</label>
+                <input type="text" id="workspace" name="workspace" value="default"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="default">
+            </div>
+
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="auto_apply" name="auto_apply" value="true"
+                    class="h-4 w-4 text-blue-600 border-zinc-300 dark:border-zinc-700 rounded focus:ring-blue-500">
+                <label for="auto_apply" class="text-sm text-zinc-900 dark:text-zinc-100">Auto-apply after successful plan</label>
+            </div>
+            <p class="text-xs text-zinc-500">When enabled, successful plans will automatically be applied without manual approval.</p>
+        </div>
+
+        <!-- Environment (optional) -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Environment</h2>
+            
+            <div>
+                <label for="environment_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Link to Environment</label>
+                <select id="environment_id" name="environment_id"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">No environment (standalone)</option>
+                    {% for env in environments %}
+                    <option value="{{ env.id }}">{{ env.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-zinc-500">Optionally link this stack to an environment for organization</p>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3">
+            <a href="/stacks" class="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">
+                Cancel
+            </a>
+            <button type="submit"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                Create Stack
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('create-stack-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    const data = {
+        name: formData.get('name'),
+        description: formData.get('description') || null,
+        repository_id: formData.get('repository_id') || null,
+        path: formData.get('path') || '.',
+        terraform_version: formData.get('terraform_version') || '1.9',
+        workspace: formData.get('workspace') || 'default',
+        auto_apply: formData.get('auto_apply') === 'true',
+        environment_id: formData.get('environment_id') || null
+    };
+    
+    try {
+        const response = await fetch('/api/v1/stacks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            window.location.href = '/stacks/' + result.id;
+        } else {
+            const error = await response.json();
+            alert('Error: ' + (error.message || 'Failed to create stack'));
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}New Application - BuildIt{% endblock %}
+
+{% block nav_applications %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
+<a href="/applications" class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Applications</a>
+<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+</svg>
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">New Application</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Create Application</h1>
+        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Deploy Kubernetes manifests via GitOps.</p>
+    </div>
+
+    <form id="create-app-form" class="space-y-6">
+        <!-- Basic Info -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Basic Information</h2>
+            
+            <div>
+                <label for="name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Name</label>
+                <input type="text" id="name" name="name" required
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="my-app">
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Description</label>
+                <textarea id="description" name="description" rows="2"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="Optional description"></textarea>
+            </div>
+        </div>
+
+        <!-- Source -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Source</h2>
+            
+            <div>
+                <label for="repository_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Repository</label>
+                <select id="repository_id" name="repository_id"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">Select a repository...</option>
+                    {% for repo in repositories %}
+                    <option value="{{ repo.id }}">{{ repo.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="path" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Path</label>
+                <input type="text" id="path" name="path" value="."
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="k8s/ or manifests/">
+                <p class="mt-1 text-xs text-zinc-500">Path to Kubernetes manifests in the repository</p>
+            </div>
+        </div>
+
+        <!-- Destination -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Destination</h2>
+            
+            <div>
+                <label for="target_namespace" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Namespace</label>
+                <input type="text" id="target_namespace" name="target_namespace" value="default"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="default">
+            </div>
+
+            <div>
+                <label for="environment_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Environment</label>
+                <select id="environment_id" name="environment_id"
+                    class="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">Select an environment (optional)...</option>
+                    {% for env in environments %}
+                    <option value="{{ env.id }}">{{ env.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Sync Policy -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+            <h2 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">Sync Policy</h2>
+            
+            <div>
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Sync Mode</label>
+                <div class="space-y-2">
+                    <label class="flex items-center gap-3">
+                        <input type="radio" name="sync_policy" value="manual" checked
+                            class="h-4 w-4 text-blue-600 border-zinc-300 dark:border-zinc-700 focus:ring-blue-500">
+                        <span class="text-sm text-zinc-900 dark:text-zinc-100">Manual</span>
+                        <span class="text-xs text-zinc-500">- Sync only when triggered</span>
+                    </label>
+                    <label class="flex items-center gap-3">
+                        <input type="radio" name="sync_policy" value="auto"
+                            class="h-4 w-4 text-blue-600 border-zinc-300 dark:border-zinc-700 focus:ring-blue-500">
+                        <span class="text-sm text-zinc-900 dark:text-zinc-100">Automatic</span>
+                        <span class="text-xs text-zinc-500">- Sync on every commit</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" name="prune" value="true"
+                        class="h-4 w-4 text-blue-600 border-zinc-300 dark:border-zinc-700 rounded focus:ring-blue-500">
+                    <span class="text-sm text-zinc-900 dark:text-zinc-100">Prune resources</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" name="self_heal" value="true"
+                        class="h-4 w-4 text-blue-600 border-zinc-300 dark:border-zinc-700 rounded focus:ring-blue-500">
+                    <span class="text-sm text-zinc-900 dark:text-zinc-100">Self-heal</span>
+                </label>
+            </div>
+            <p class="text-xs text-zinc-500">Prune removes resources not in Git. Self-heal reverts manual changes.</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3">
+            <a href="/applications" class="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100">
+                Cancel
+            </a>
+            <button type="submit"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                Create Application
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('create-app-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    const data = {
+        name: formData.get('name'),
+        description: formData.get('description') || null,
+        repository_id: formData.get('repository_id') || null,
+        path: formData.get('path') || '.',
+        target_namespace: formData.get('target_namespace') || 'default',
+        environment_id: formData.get('environment_id') || null,
+        sync_policy: formData.get('sync_policy') || 'manual',
+        prune: formData.get('prune') === 'true',
+        self_heal: formData.get('self_heal') === 'true'
+    };
+    
+    try {
+        const response = await fetch('/api/v1/applications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            window.location.href = '/applications/' + result.id;
+        } else {
+            const error = await response.json();
+            alert('Error: ' + (error.message || 'Failed to create application'));
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+</script>
+{% endblock %}

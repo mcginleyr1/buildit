@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}{{ repository.full_name }} - BuildIt{% endblock %}
+
+{% block nav_repositories %}text-zinc-900 bg-zinc-100 dark:text-zinc-100 dark:bg-zinc-800{% endblock %}
+
+{% block breadcrumb %}
+<a href="/repositories" class="text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">Repositories</a>
+<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+</svg>
+<span class="text-zinc-900 dark:text-zinc-100 font-medium">{{ repository.full_name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-start justify-between">
+        <div class="flex items-center gap-4">
+            <!-- Provider icon -->
+            {% if repository.provider == "github" %}
+            <div class="w-14 h-14 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center">
+                <svg class="w-7 h-7 text-white dark:text-zinc-900" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+            </div>
+            {% elif repository.provider == "gitlab" %}
+            <div class="w-14 h-14 rounded-xl bg-orange-500 flex items-center justify-center">
+                <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z"/>
+                </svg>
+            </div>
+            {% else %}
+            <div class="w-14 h-14 rounded-xl bg-blue-600 flex items-center justify-center">
+                <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M.778 1.213a.768.768 0 00-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 00.77-.646l3.27-20.03a.768.768 0 00-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z"/>
+                </svg>
+            </div>
+            {% endif %}
+            <div>
+                <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{{ repository.full_name }}</h1>
+                <div class="flex items-center gap-3 mt-1">
+                    <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ repository.default_branch }}</span>
+                    {% if repository.is_private %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        Private
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="syncRepo('{{ repository.id }}')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Sync
+            </button>
+            <a href="{{ repository.clone_url }}" target="_blank" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+                View on {{ repository.provider_display }}
+            </a>
+        </div>
+    </div>
+
+    <!-- Detected Configuration -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Detected Configuration</h2>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Automatically detected from repository scan. Last synced {{ repository.last_synced_ago }}.</p>
+        </div>
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Pipeline Config -->
+            <div class="p-4 rounded-lg border {% if detected.has_pipeline %}border-purple-200 bg-purple-50 dark:border-purple-900/50 dark:bg-purple-900/20{% else %}border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800{% endif %}">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg {% if detected.has_pipeline %}bg-purple-500{% else %}bg-zinc-400 dark:bg-zinc-600{% endif %} flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium {% if detected.has_pipeline %}text-purple-900 dark:text-purple-100{% else %}text-zinc-600 dark:text-zinc-400{% endif %}">Pipeline</div>
+                        <div class="text-xs {% if detected.has_pipeline %}text-purple-700 dark:text-purple-300{% else %}text-zinc-500 dark:text-zinc-500{% endif %}">
+                            {% if detected.has_pipeline %}{{ detected.buildit_config }}{% else %}Not detected{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terraform -->
+            <div class="p-4 rounded-lg border {% if detected.has_terraform %}border-violet-200 bg-violet-50 dark:border-violet-900/50 dark:bg-violet-900/20{% else %}border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800{% endif %}">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg {% if detected.has_terraform %}bg-violet-500{% else %}bg-zinc-400 dark:bg-zinc-600{% endif %} flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M1 0l4 2.5v5L1 5V0zm6-5l-4 2.5v5l4-2.5v-5zm0 14l-4 2.5v5l4-2.5v-5zm6-6l-4 2.5v5l4-2.5v-5z" transform="translate(5,3)"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium {% if detected.has_terraform %}text-violet-900 dark:text-violet-100{% else %}text-zinc-600 dark:text-zinc-400{% endif %}">Terraform</div>
+                        <div class="text-xs {% if detected.has_terraform %}text-violet-700 dark:text-violet-300{% else %}text-zinc-500 dark:text-zinc-500{% endif %}">
+                            {% if detected.has_terraform %}{{ detected.terraform_dir_count }} director{% if detected.terraform_dir_count != 1 %}ies{% else %}y{% endif %}{% else %}Not detected{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kubernetes -->
+            <div class="p-4 rounded-lg border {% if detected.has_kubernetes %}border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-900/20{% else %}border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800{% endif %}">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg {% if detected.has_kubernetes %}bg-blue-500{% else %}bg-zinc-400 dark:bg-zinc-600{% endif %} flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M10.204 14.35l.007.01-.999 2.413a5.171 5.171 0 01-2.075-2.597l2.578-.437.004.005a.44.44 0 01.484.606zm-.833-2.129a.44.44 0 00.173-.756l.002-.011L7.585 9.7a5.143 5.143 0 01-.015 3.24l1.8-1.149.001.004zm3.652-.533c.04-.193-.04-.388-.192-.509l-.004-.006 1.613-2.088a5.154 5.154 0 011.486 2.84l-2.555.406-.003-.008a.44.44 0 00-.345-.635zm-2.826-.126a.44.44 0 00.55-.549l-.002-.004 1.617-2.1a5.16 5.16 0 012.018 2.378l-2.584.408.003-.004a.44.44 0 00-.602-.13zm.627 1.093l-.008.01 1.002 2.407a5.168 5.168 0 002.067-2.599l-2.572-.434-.002.004a.44.44 0 00-.487.612zm1.37-4.193l.009-.005-.778-2.496a5.168 5.168 0 00-2.937 1.216l2.094 1.53-.005.007a.44.44 0 00.617-.252zm-2.507-.27l-.005-.008-.78-2.5a5.168 5.168 0 00-2.93 1.229l2.102 1.533.004-.005a.44.44 0 00.609-.249z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium {% if detected.has_kubernetes %}text-blue-900 dark:text-blue-100{% else %}text-zinc-600 dark:text-zinc-400{% endif %}">Kubernetes</div>
+                        <div class="text-xs {% if detected.has_kubernetes %}text-blue-700 dark:text-blue-300{% else %}text-zinc-500 dark:text-zinc-500{% endif %}">
+                            {% if detected.has_kubernetes %}{{ detected.kubernetes_file_count }} manifest{% if detected.kubernetes_file_count != 1 %}s{% endif %}{% else %}Not detected{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Docker -->
+            <div class="p-4 rounded-lg border {% if detected.has_dockerfile %}border-cyan-200 bg-cyan-50 dark:border-cyan-900/50 dark:bg-cyan-900/20{% else %}border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800{% endif %}">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg {% if detected.has_dockerfile %}bg-cyan-500{% else %}bg-zinc-400 dark:bg-zinc-600{% endif %} flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium {% if detected.has_dockerfile %}text-cyan-900 dark:text-cyan-100{% else %}text-zinc-600 dark:text-zinc-400{% endif %}">Docker</div>
+                        <div class="text-xs {% if detected.has_dockerfile %}text-cyan-700 dark:text-cyan-300{% else %}text-zinc-500 dark:text-zinc-500{% endif %}">
+                            {% if detected.has_dockerfile %}{{ detected.dockerfile_count }} Dockerfile{% if detected.dockerfile_count != 1 %}s{% endif %}{% else %}Not detected{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Pipelines -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Pipelines</h2>
+                    <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">CI/CD pipelines using this repository.</p>
+                </div>
+                <a href="/pipelines/new?repository={{ repository.id }}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Create pipeline</a>
+            </div>
+            {% if has_pipelines %}
+            <ul class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {% for pipeline in pipelines %}
+                <li class="px-6 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                    <a href="/pipelines/{{ pipeline.id }}" class="flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ pipeline.name }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ pipeline.last_run_ago }}</div>
+                        </div>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if pipeline.last_status == "succeeded" %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% elif pipeline.last_status == "failed" %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% elif pipeline.last_status == "running" %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300{% else %}bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300{% endif %}">
+                            {{ pipeline.last_status }}
+                        </span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="p-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                No pipelines configured for this repository.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Stacks -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Stacks</h2>
+                    <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Terraform stacks from this repository.</p>
+                </div>
+                {% if detected.has_terraform %}
+                <a href="/stacks/new?repository={{ repository.id }}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Create stack</a>
+                {% endif %}
+            </div>
+            {% if has_stacks %}
+            <ul class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {% for stack in stacks %}
+                <li class="px-6 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                    <a href="/stacks/{{ stack.id }}" class="flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ stack.name }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ stack.path }}</div>
+                        </div>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if stack.status == "ready" %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% elif stack.status == "error" %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% else %}bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300{% endif %}">
+                            {{ stack.status }}
+                        </span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="p-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                {% if detected.has_terraform %}
+                Terraform detected but no stacks configured.
+                {% else %}
+                No Terraform configuration detected.
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Webhook Info -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Webhook</h2>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Configure webhooks to automatically trigger pipelines on push.</p>
+        </div>
+        <div class="p-6">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Webhook URL</label>
+                <div class="flex gap-2">
+                    <input type="text" readonly value="{{ webhook_url }}" class="flex-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 font-mono"/>
+                    <button onclick="copyToClipboard('{{ webhook_url }}')" class="px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                        Copy
+                    </button>
+                </div>
+            </div>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                Add this URL as a webhook in your {{ repository.provider_display }} repository settings.
+                Select "Push events" to trigger pipelines on code pushes.
+            </p>
+        </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="bg-white dark:bg-zinc-900 rounded-lg border border-red-200 dark:border-red-900/50">
+        <div class="px-6 py-4 border-b border-red-200 dark:border-red-900/50">
+            <h2 class="text-lg font-semibold text-red-600 dark:text-red-400">Danger Zone</h2>
+        </div>
+        <div class="p-6 flex items-center justify-between">
+            <div>
+                <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Disconnect Repository</div>
+                <div class="text-sm text-zinc-500 dark:text-zinc-400">Remove this repository from BuildIt. Pipelines and stacks will be unlinked.</div>
+            </div>
+            <button onclick="disconnectRepo('{{ repository.id }}')" class="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                Disconnect
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+async function syncRepo(id) {
+    try {
+        const response = await fetch(`/api/repositories/${id}/sync`, { method: 'POST' });
+        if (response.ok) {
+            window.location.reload();
+        }
+    } catch (err) {
+        console.error('Failed to sync repository:', err);
+    }
+}
+
+async function disconnectRepo(id) {
+    if (!confirm('Are you sure you want to disconnect this repository?')) return;
+    try {
+        const response = await fetch(`/api/repositories/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+            window.location.href = '/repositories';
+        }
+    } catch (err) {
+        console.error('Failed to disconnect repository:', err);
+    }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+}
+</script>
+{% endblock %}
