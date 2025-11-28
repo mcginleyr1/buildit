@@ -1,0 +1,41 @@
+// BuildIt CI/CD Pipeline Configuration
+// This file defines the CI pipeline for BuildIt itself
+
+pipeline "buildit" {
+    description "BuildIt CI/CD Platform"
+    repository "https://github.com/mcginleyr1/buildit"
+}
+
+// Parallel linting stages
+stage "fmt" {
+    image "rustlang/rust:nightly"
+    run "rustup component add rustfmt"
+    run "cargo fmt --check"
+}
+
+stage "clippy" {
+    image "rustlang/rust:nightly"
+    run "rustup component add clippy"
+    run "cargo clippy --workspace -- -D warnings"
+}
+
+// Test stage - depends on both lint stages
+stage "test" needs="fmt" needs="clippy" {
+    image "rustlang/rust:nightly"
+    env "RUST_BACKTRACE" "1"
+    run "cargo test --workspace"
+}
+
+// Build stage - depends on tests passing
+stage "build" needs="test" {
+    image "rustlang/rust:nightly"
+    run "cargo build --release -p buildit-api -p buildit-cli"
+}
+
+// Triggers (when to run this pipeline)
+trigger "push" {
+    branches "main"
+}
+
+trigger "pull_request" {
+}

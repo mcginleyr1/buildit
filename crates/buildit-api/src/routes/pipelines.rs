@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::error::ApiError;
+use buildit_config::VariableContextBuilder;
 use buildit_core::ResourceId;
 use buildit_core::pipeline::Pipeline;
 use buildit_db::PipelineRepo;
@@ -177,8 +178,17 @@ async fn trigger_run(
     let run_id = ResourceId::from_uuid(run.id);
 
     if let Some(orchestrator) = orchestrator {
+        let stage_names: Vec<String> = pipeline.stages.iter().map(|s| s.name.clone()).collect();
+
         tokio::spawn(async move {
             tracing::info!(run_id = %run_id, "Starting pipeline execution");
+
+            // Create stage result records for all stages upfront
+            for stage_name in &stage_names {
+                if let Err(e) = pipeline_repo.create_stage_result(run_id, stage_name).await {
+                    tracing::error!(error = %e, stage = %stage_name, "Failed to create stage result");
+                }
+            }
 
             // Set run status to running
             if let Err(e) = pipeline_repo.update_run_status(run_id, "running").await {
@@ -191,13 +201,66 @@ async fn trigger_run(
             env.insert("CI".to_string(), "true".to_string());
             env.insert("BUILDIT".to_string(), "true".to_string());
 
+            // Build variable context for interpolation
+            // Extract git info from JSON
+            let git_branch = run
+                .git_info
+                .get("branch")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string();
+            let git_sha = run
+                .git_info
+                .get("sha")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string();
+
+            let var_ctx = VariableContextBuilder::new()
+                .with_pipeline(pipeline.id.to_string(), pipeline.name.clone())
+                .with_run(run_id.to_string(), run.number as u32)
+                .with_git_branch(git_branch)
+                .with_git_sha(git_sha)
+                .build();
+
             // Execute
             tracing::info!(run_id = %run_id, "Executing pipeline with {} stages", pipeline.stages.len());
-            let (_event_rx, result_handle) = orchestrator.execute(&pipeline, env);
+            let (event_rx, result_handle) = orchestrator.execute(&pipeline, env, Some(var_ctx));
 
-            // Consume events (for now we just drain them, later we'll stream to websocket)
-            let mut event_rx = _event_rx;
-            while event_rx.recv().await.is_some() {}
+            // Process events and update stage results in database
+            let mut event_rx = event_rx;
+            let repo_clone = pipeline_repo.clone();
+            while let Some(event) = event_rx.recv().await {
+                match event {
+                    buildit_scheduler::PipelineEvent::StageStarted { stage } => {
+                        tracing::info!(run_id = %run_id, stage = %stage, "Stage started");
+                        if let Err(e) = repo_clone
+                            .update_stage_result_started(run_id, &stage, None)
+                            .await
+                        {
+                            tracing::error!(error = %e, "Failed to update stage start");
+                        }
+                    }
+                    buildit_scheduler::PipelineEvent::StageCompleted { stage, success } => {
+                        let status = if success { "succeeded" } else { "failed" };
+                        let error_msg = if success { None } else { Some("Stage failed") };
+                        tracing::info!(run_id = %run_id, stage = %stage, status = %status, "Stage completed");
+                        if let Err(e) = repo_clone
+                            .update_stage_result_finished(run_id, &stage, status, error_msg)
+                            .await
+                        {
+                            tracing::error!(error = %e, "Failed to update stage finish");
+                        }
+                    }
+                    buildit_scheduler::PipelineEvent::StageLog { stage, line } => {
+                        // TODO: Store logs or stream to websocket
+                        tracing::debug!(run_id = %run_id, stage = %stage, line = ?line, "Stage log");
+                    }
+                    buildit_scheduler::PipelineEvent::PipelineCompleted { success } => {
+                        tracing::info!(run_id = %run_id, success = %success, "Pipeline completed");
+                    }
+                }
+            }
 
             let result = result_handle.await.expect("Pipeline execution task failed");
 

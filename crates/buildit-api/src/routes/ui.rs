@@ -186,9 +186,23 @@ struct StageView {
     status: String,
     duration: String,
     dependencies: Vec<String>,
-    // DAG layout computed fields
+    /// Column/group this stage belongs to (computed from dependencies)
+    column: i32,
+    /// Row within the column (for parallel stages)
+    row: i32,
+    // DAG layout computed fields (legacy, kept for compatibility)
     x: i32,
     y: i32,
+}
+
+/// A column in the pipeline visualization (e.g., BUILD, TEST, DEPLOY)
+struct PipelineColumn {
+    /// Column index (0-based)
+    index: i32,
+    /// Display name for the column header
+    name: String,
+    /// Stages in this column
+    stages: Vec<String>,
 }
 
 /// Edge between two stages for DAG visualization
@@ -197,6 +211,14 @@ struct DagEdge {
     from_y: i32,
     to_x: i32,
     to_y: i32,
+    /// Status of the source stage (for edge coloring)
+    from_status: String,
+    /// Name of source stage
+    from_name: String,
+    /// Name of target stage
+    to_name: String,
+    /// Control point offset for bezier curves (helps with edge routing)
+    control_offset: i32,
 }
 
 struct EnvironmentView {
@@ -602,6 +624,32 @@ async fn run_detail_page(
         .list_stage_results(ResourceId::from_uuid(run_id))
         .await?;
 
+    // Calculate total run duration from stage results
+    let run_duration = {
+        let earliest_start = stage_results.iter().filter_map(|r| r.started_at).min();
+        let latest_end = stage_results.iter().filter_map(|r| r.finished_at).max();
+        match (earliest_start, latest_end) {
+            (Some(start), Some(end)) => {
+                let secs = (end - start).num_seconds();
+                if secs < 60 {
+                    format!("{}s", secs)
+                } else {
+                    format!("{}m {}s", secs / 60, secs % 60)
+                }
+            }
+            (Some(start), None) => {
+                // Still running
+                let secs = (chrono::Utc::now() - start).num_seconds();
+                if secs < 60 {
+                    format!("{}s", secs)
+                } else {
+                    format!("{}m {}s", secs / 60, secs % 60)
+                }
+            }
+            _ => "-".to_string(),
+        }
+    };
+
     // Build a map of stage name -> result for quick lookup
     let result_map: std::collections::HashMap<String, _> = stage_results
         .into_iter()
@@ -643,6 +691,8 @@ async fn run_detail_page(
                 status,
                 duration,
                 dependencies: def.depends_on,
+                column: 0,
+                row: 0,
                 x: 0,
                 y: 0,
             }
@@ -677,7 +727,7 @@ async fn run_detail_page(
                 .unwrap_or("manual")
                 .to_string(),
             created_at: format_time_ago(run.created_at),
-            duration: "2m 14s".to_string(), // TODO: Calculate actual duration
+            duration: run_duration,
         },
         stages,
         edges,
@@ -1074,30 +1124,37 @@ async fn settings_notifications_page(
 // Helpers
 // ============================================================================
 
-/// Compute DAG layout for stages.
+/// Compute DAG layout for stages using an improved algorithm.
 /// Returns (edges, width, height) and mutates stages to set x/y positions.
+///
+/// Layout algorithm:
+/// 1. Topological sort to determine level (column) for each stage
+/// 2. Center nodes vertically within each level based on their dependencies
+/// 3. Route edges with control point offsets to avoid overlap
 fn compute_dag_layout(stages: &mut [StageView]) -> (Vec<DagEdge>, i32, i32) {
     use std::collections::{HashMap, HashSet};
 
-    const NODE_WIDTH: i32 = 130;
+    const NODE_WIDTH: i32 = 140;
     const NODE_HEIGHT: i32 = 60;
-    const H_SPACING: i32 = 80;
-    const V_SPACING: i32 = 40;
-    const PADDING: i32 = 30;
+    const H_SPACING: i32 = 100;
+    const V_SPACING: i32 = 50;
+    const PADDING: i32 = 40;
 
     if stages.is_empty() {
         return (vec![], 200, 120);
     }
 
-    // Build name -> index mapping with owned strings
+    // Build name -> index mapping
     let name_to_idx: HashMap<String, usize> = stages
         .iter()
         .enumerate()
         .map(|(i, s)| (s.name.clone(), i))
         .collect();
 
-    // Clone dependencies to avoid borrow issues
+    // Clone data we need to avoid borrow issues
     let deps_list: Vec<Vec<String>> = stages.iter().map(|s| s.dependencies.clone()).collect();
+    let status_list: Vec<String> = stages.iter().map(|s| s.status.clone()).collect();
+    let name_list: Vec<String> = stages.iter().map(|s| s.name.clone()).collect();
 
     // Compute levels (topological ordering)
     let mut levels: Vec<i32> = vec![-1; stages.len()];
@@ -1113,7 +1170,7 @@ fn compute_dag_layout(stages: &mut [StageView]) -> (Vec<DagEdge>, i32, i32) {
             return levels[idx];
         }
         if visiting.contains(&idx) {
-            return 0; // cycle
+            return 0; // cycle detected
         }
         visiting.insert(idx);
 
@@ -1144,46 +1201,81 @@ fn compute_dag_layout(stages: &mut [StageView]) -> (Vec<DagEdge>, i32, i32) {
         by_level[lvl as usize].push(i);
     }
 
-    // Compute positions
+    // Find the maximum number of nodes at any level (for vertical centering)
+    let max_nodes_in_level = by_level.iter().map(|v| v.len()).max().unwrap_or(1);
+
+    // Compute positions with improved vertical centering
     let mut positions: Vec<(i32, i32)> = vec![(0, 0); stages.len()];
-    let mut max_y = 0i32;
+    let total_height =
+        PADDING * 2 + (max_nodes_in_level as i32 - 1) * (NODE_HEIGHT + V_SPACING) + NODE_HEIGHT;
 
     for (lvl, indices) in by_level.iter().enumerate() {
         let x = PADDING + (lvl as i32) * (NODE_WIDTH + H_SPACING);
+        let nodes_in_level = indices.len() as i32;
+
+        // Calculate starting Y to center this level's nodes
+        let level_height = (nodes_in_level - 1) * (NODE_HEIGHT + V_SPACING) + NODE_HEIGHT;
+        let start_y = (total_height - level_height) / 2;
+
         for (i, &idx) in indices.iter().enumerate() {
-            let y = PADDING + (i as i32) * (NODE_HEIGHT + V_SPACING);
+            let y = start_y + (i as i32) * (NODE_HEIGHT + V_SPACING);
             positions[idx] = (x, y);
-            max_y = max_y.max(y + NODE_HEIGHT);
         }
     }
 
-    // Apply to stages
+    // Apply positions to stages
     for (idx, &(x, y)) in positions.iter().enumerate() {
         stages[idx].x = x;
         stages[idx].y = y;
     }
 
-    // Build edges
+    // Build edges with routing information
+    // Track edges per source node for offset calculation
+    let mut edges_from: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (idx, deps) in deps_list.iter().enumerate() {
+        for dep_name in deps {
+            if let Some(&dep_idx) = name_to_idx.get(dep_name) {
+                edges_from.entry(dep_idx).or_default().push(idx);
+            }
+        }
+    }
+
     let mut edges = Vec::new();
     for (idx, deps) in deps_list.iter().enumerate() {
         let (to_x, to_y) = positions[idx];
-        for dep_name in deps {
+
+        for (dep_i, dep_name) in deps.iter().enumerate() {
             if let Some(&dep_idx) = name_to_idx.get(dep_name) {
                 let (from_x, from_y) = positions[dep_idx];
+
+                // Calculate control offset to spread out edges from same source
+                let outgoing_edges = edges_from.get(&dep_idx).map(|v| v.len()).unwrap_or(1);
+                let control_offset = if outgoing_edges > 1 {
+                    // Spread edges vertically based on index
+                    let spread = 20i32;
+                    (dep_i as i32 - (outgoing_edges as i32 / 2)) * spread
+                } else {
+                    0
+                };
+
                 edges.push(DagEdge {
                     from_x: from_x + NODE_WIDTH,
                     from_y: from_y + NODE_HEIGHT / 2,
                     to_x,
                     to_y: to_y + NODE_HEIGHT / 2,
+                    from_status: status_list[dep_idx].clone(),
+                    from_name: name_list[dep_idx].clone(),
+                    to_name: name_list[idx].clone(),
+                    control_offset,
                 });
             }
         }
     }
 
     let width = PADDING * 2 + (max_level + 1) * NODE_WIDTH + max_level * H_SPACING;
-    let height = max_y + PADDING;
+    let height = total_height.max(160);
 
-    (edges, width.max(200), height.max(120))
+    (edges, width.max(200), height)
 }
 
 fn format_time_ago(time: chrono::DateTime<chrono::Utc>) -> String {

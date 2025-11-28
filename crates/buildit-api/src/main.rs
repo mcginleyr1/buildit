@@ -1,6 +1,6 @@
 //! BuildIt API Server
 
-use buildit_api::{AppState, routes};
+use buildit_api::{AppState, ExecutorType, routes};
 use buildit_db::create_pool;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -28,8 +28,13 @@ async fn main() -> anyhow::Result<()> {
     let pool = create_pool(&database_url).await?;
     info!("Database connected");
 
-    // Create app state
-    let state = AppState::new(pool);
+    // Determine executor type from environment
+    let executor_type = ExecutorType::from_env();
+    info!("Using executor: {:?}", executor_type);
+
+    // Create app state and initialize executor
+    let mut state = AppState::new(pool);
+    state.init_executor(executor_type).await;
 
     // Build router
     let app = routes::router(state)

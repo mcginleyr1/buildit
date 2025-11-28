@@ -7,4 +7,4 @@ pub mod routes;
 pub mod state;
 pub mod ws;
 
-pub use state::AppState;
+pub use state::{AppState, ExecutorType};

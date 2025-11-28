@@ -8,6 +8,8 @@ rust-version.workspace = true
 
 [dependencies]
 buildit-core.workspace = true
+chrono.workspace = true
 kdl.workspace = true
+regex.workspace = true
 serde.workspace = true
 thiserror.workspace = true

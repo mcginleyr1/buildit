@@ -1,6 +1,7 @@
 //! Local pipeline execution command.
 
 use anyhow::{Context, Result};
+use buildit_config::VariableContext;
 use buildit_config::pipeline::parse_pipeline;
 use buildit_executor::LocalDockerExecutor;
 use buildit_scheduler::{PipelineEvent, PipelineOrchestrator};
@@ -53,17 +54,20 @@ pub async fn run_local(config_path: &str, stages: Option<Vec<String>>) -> Result
     println!("Working directory: {}", working_dir.display());
 
     // Create the orchestrator with working directory
-    let orchestrator = PipelineOrchestrator::with_working_dir(executor, working_dir);
+    let orchestrator = PipelineOrchestrator::with_working_dir(executor, working_dir.clone());
 
     // Build environment variables
     let mut env = HashMap::new();
     env.insert("CI".to_string(), "true".to_string());
     env.insert("BUILDIT".to_string(), "true".to_string());
 
+    // Build variable context from current git repo
+    let var_ctx = VariableContext::from_git_repo(working_dir.to_str().unwrap_or("."));
+
     // Execute the pipeline
     println!("\n--- Starting pipeline execution ---\n");
 
-    let (mut rx, result_handle) = orchestrator.execute(&pipeline, env);
+    let (mut rx, result_handle) = orchestrator.execute(&pipeline, env, Some(var_ctx));
 
     // Process events concurrently with execution
     while let Some(event) = rx.recv().await {

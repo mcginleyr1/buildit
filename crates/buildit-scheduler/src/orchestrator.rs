@@ -1,5 +1,6 @@
 //! Pipeline orchestrator - executes pipeline stages in dependency order.
 
+use buildit_config::VariableContext;
 use buildit_core::ResourceId;
 use buildit_core::executor::{
     Executor, JobSpec, JobStatus, LogLine, ResourceRequirements, VolumeMount,
@@ -75,10 +76,14 @@ impl PipelineOrchestrator {
     }
 
     /// Execute a pipeline, returning a channel of events and a handle to get the final result.
+    ///
+    /// The `var_ctx` provides variable interpolation for commands and environment variables.
+    /// Variables like `${git.sha}`, `${git.branch}`, `${env.VAR}`, etc. will be substituted.
     pub fn execute(
         &self,
         pipeline: &Pipeline,
         env: HashMap<String, String>,
+        var_ctx: Option<VariableContext>,
     ) -> (
         mpsc::Receiver<PipelineEvent>,
         tokio::task::JoinHandle<PipelineResult>,
@@ -87,9 +92,10 @@ impl PipelineOrchestrator {
         let executor = self.executor.clone();
         let working_dir = self.working_dir.clone();
         let stages = pipeline.stages.clone();
+        let var_ctx = var_ctx.unwrap_or_default();
 
         let handle = tokio::spawn(async move {
-            Self::execute_inner(executor, working_dir, stages, env, tx).await
+            Self::execute_inner(executor, working_dir, stages, env, var_ctx, tx).await
         });
 
         (rx, handle)
@@ -101,6 +107,7 @@ impl PipelineOrchestrator {
         working_dir: Option<PathBuf>,
         stages: Vec<Stage>,
         env: HashMap<String, String>,
+        mut var_ctx: VariableContext,
         tx: mpsc::Sender<PipelineEvent>,
     ) -> PipelineResult {
         let mut stage_states: HashMap<String, StageState> = stages
@@ -111,8 +118,12 @@ impl PipelineOrchestrator {
         // Build execution order using topological sort
         let execution_order = Self::topological_sort(&stages);
 
-        for stage_name in execution_order {
-            let stage = stages.iter().find(|s| s.name == stage_name).unwrap();
+        for (stage_idx, stage_name) in execution_order.iter().enumerate() {
+            let stage = stages.iter().find(|s| s.name == *stage_name).unwrap();
+
+            // Update stage context for variable interpolation
+            var_ctx.stage.name = stage.name.clone();
+            var_ctx.stage.index = stage_idx;
 
             // Check if dependencies are satisfied
             let deps_satisfied = stage.needs.iter().all(|dep| {
@@ -157,7 +168,7 @@ impl PipelineOrchestrator {
                 })
                 .await;
 
-            match Self::execute_stage(&executor, &working_dir, stage, &env, &tx).await {
+            match Self::execute_stage(&executor, &working_dir, stage, &env, &var_ctx, &tx).await {
                 Ok(()) => {
                     info!(stage = %stage.name, "Stage completed successfully");
                     stage_states.insert(stage.name.clone(), StageState::Succeeded);
@@ -201,6 +212,7 @@ impl PipelineOrchestrator {
         working_dir: &Option<PathBuf>,
         stage: &Stage,
         env: &HashMap<String, String>,
+        var_ctx: &VariableContext,
         tx: &mpsc::Sender<PipelineEvent>,
     ) -> Result<(), String> {
         match &stage.action {
@@ -213,9 +225,18 @@ impl PipelineOrchestrator {
                 let mut full_env = env.clone();
                 full_env.extend(stage.env.clone());
 
+                // Apply variable interpolation to environment values
+                let full_env = var_ctx.interpolate_map(&full_env);
+
+                // Apply variable interpolation to commands
+                let interpolated_commands = var_ctx.interpolate_vec(commands);
+
+                // Apply variable interpolation to image
+                let interpolated_image = var_ctx.interpolate(image);
+
                 // Build the job spec
                 // We'll run commands as a shell script
-                let script = commands.join(" && ");
+                let script = interpolated_commands.join(" && ");
                 let command = vec!["/bin/sh".to_string(), "-c".to_string(), script];
 
                 // Build volume mounts - mount working directory if provided
@@ -231,7 +252,7 @@ impl PipelineOrchestrator {
 
                 let job_spec = JobSpec {
                     id: ResourceId::new(),
-                    image: image.clone(),
+                    image: interpolated_image.clone(),
                     command,
                     working_dir: Some("/workspace".to_string()),
                     env: full_env,
@@ -240,7 +261,7 @@ impl PipelineOrchestrator {
                     volumes,
                 };
 
-                info!(stage = %stage.name, image = %image, "Spawning job");
+                info!(stage = %stage.name, image = %interpolated_image, "Spawning job");
 
                 // Spawn the job
                 let handle = executor

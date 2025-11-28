@@ -459,7 +459,9 @@ name = "buildit-config"
 version = "0.1.0"
 dependencies = [
  "buildit-core",
+ "chrono",
  "kdl",
+ "regex",
  "serde",
  "thiserror 2.0.17",
 ]

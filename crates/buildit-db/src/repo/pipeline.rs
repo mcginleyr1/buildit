@@ -99,6 +99,24 @@ pub trait PipelineRepo: Send + Sync {
 
     // Stage result methods
     async fn list_stage_results(&self, run_id: ResourceId) -> DbResult<Vec<StageResultRecord>>;
+    async fn create_stage_result(
+        &self,
+        run_id: ResourceId,
+        stage_name: &str,
+    ) -> DbResult<StageResultRecord>;
+    async fn update_stage_result_started(
+        &self,
+        run_id: ResourceId,
+        stage_name: &str,
+        job_id: Option<ResourceId>,
+    ) -> DbResult<()>;
+    async fn update_stage_result_finished(
+        &self,
+        run_id: ResourceId,
+        stage_name: &str,
+        status: &str,
+        error_message: Option<&str>,
+    ) -> DbResult<()>;
 }
 
 /// PostgreSQL implementation of PipelineRepo.
@@ -259,5 +277,69 @@ impl PipelineRepo for PgPipelineRepo {
         .fetch_all(&self.pool)
         .await?;
         Ok(records)
+    }
+
+    async fn create_stage_result(
+        &self,
+        run_id: ResourceId,
+        stage_name: &str,
+    ) -> DbResult<StageResultRecord> {
+        let record = sqlx::query_as::<_, StageResultRecord>(
+            r#"
+            INSERT INTO stage_results (id, pipeline_run_id, stage_name, status)
+            VALUES ($1, $2, $3, 'pending')
+            RETURNING *
+            "#,
+        )
+        .bind(uuid::Uuid::now_v7())
+        .bind(run_id.as_uuid())
+        .bind(stage_name)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(record)
+    }
+
+    async fn update_stage_result_started(
+        &self,
+        run_id: ResourceId,
+        stage_name: &str,
+        job_id: Option<ResourceId>,
+    ) -> DbResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE stage_results
+            SET status = 'running', started_at = NOW(), job_id = $3
+            WHERE pipeline_run_id = $1 AND stage_name = $2
+            "#,
+        )
+        .bind(run_id.as_uuid())
+        .bind(stage_name)
+        .bind(job_id.map(|j| *j.as_uuid()))
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn update_stage_result_finished(
+        &self,
+        run_id: ResourceId,
+        stage_name: &str,
+        status: &str,
+        error_message: Option<&str>,
+    ) -> DbResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE stage_results
+            SET status = $3, finished_at = NOW(), error_message = $4
+            WHERE pipeline_run_id = $1 AND stage_name = $2
+            "#,
+        )
+        .bind(run_id.as_uuid())
+        .bind(stage_name)
+        .bind(status)
+        .bind(error_message)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 }

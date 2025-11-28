@@ -254,16 +254,25 @@ fn get_bool_prop(node: &KdlNode, name: &str) -> Option<bool> {
 }
 
 fn get_string_list_prop(node: &KdlNode, name: &str) -> Vec<String> {
-    // KDL arrays are represented as node children or repeated entries
-    // For simplicity, we look for a property with array syntax like branches=["main" "dev"]
-    if let Some(value) = node.get(name) {
-        // If it's a single string, return as single-element list
-        if let Some(s) = value.as_string() {
-            return vec![s.to_string()];
+    let mut result = Vec::new();
+
+    // First, collect all entries with this name (handles repeated attributes like needs="a" needs="b")
+    for entry in node.entries() {
+        if let Some(entry_name) = entry.name() {
+            if entry_name.value() == name {
+                if let Some(s) = entry.value().as_string() {
+                    result.push(s.to_string());
+                }
+            }
         }
     }
 
-    // Check children for the property name
+    // If we found entries, return them
+    if !result.is_empty() {
+        return result;
+    }
+
+    // Check children for the property name (handles block syntax)
     if let Some(children) = node.children() {
         for child in children.nodes() {
             if child.name().value() == name {

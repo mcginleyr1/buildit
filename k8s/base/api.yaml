@@ -82,10 +82,10 @@ spec:
   selector:
     app.kubernetes.io/name: api
   ports:
-    - port: 3000
+    - port: 80
       targetPort: 3000
       name: http
-  type: ClusterIP
+  type: LoadBalancer
 ---
 apiVersion: v1
 kind: ServiceAccount

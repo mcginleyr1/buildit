@@ -71,6 +71,7 @@ chrono = { version = "0.4", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 bytes = "1"
 derive_more = { version = "1", features = ["display", "from"] }
+regex = "1"
 
 # Internal crates
 buildit-core = { path = "crates/buildit-core" }
