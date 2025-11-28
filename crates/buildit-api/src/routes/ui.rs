@@ -37,6 +37,7 @@ struct PipelinesTemplate {
 #[derive(Template)]
 #[template(path = "pages/pipelines/new.html")]
 struct NewPipelineTemplate {
+    tenant_id: String,
     pipeline_name_default: String,
     available_secrets: Vec<SecretView>,
     available_targets: Vec<TargetView>,
@@ -442,6 +443,7 @@ async fn new_pipeline_page(State(state): State<AppState>) -> Result<impl IntoRes
     ];
 
     let template = NewPipelineTemplate {
+        tenant_id: tenant.id.to_string(),
         pipeline_name_default: "my-app".to_string(),
         available_secrets,
         available_targets,

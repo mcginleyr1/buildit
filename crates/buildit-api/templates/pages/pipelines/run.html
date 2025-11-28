@@ -177,8 +177,66 @@
         </div>
     </div>
 
-    <!-- Right Panel: Logs -->
-    <div class="flex-1 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col min-h-[600px]">
+    <!-- Right Panel: DAG + Logs -->
+    <div class="flex-1 flex flex-col gap-4 min-h-[600px]">
+        <!-- Pipeline Flow DAG -->
+        <div class="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <div class="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Pipeline Flow</h3>
+            </div>
+            <div class="p-4 overflow-x-auto">
+                <div class="inline-flex items-center gap-2 min-w-max">
+                    {% for stage in stages %}
+                    <!-- Stage Node -->
+                    <button
+                        onclick="selectJob('{{ stage.name }}')"
+                        class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all hover:scale-105
+                            {% if stage.status == "succeeded" %}
+                                bg-green-500/10 border-green-500/30 hover:border-green-500
+                            {% else if stage.status == "failed" %}
+                                bg-red-500/10 border-red-500/30 hover:border-red-500
+                            {% else if stage.status == "running" %}
+                                bg-blue-500/10 border-blue-500/30 hover:border-blue-500
+                            {% else %}
+                                bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400
+                            {% endif %}"
+                    >
+                        <!-- Status indicator -->
+                        {% if stage.status == "succeeded" %}
+                        <div class="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                            <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        {% else if stage.status == "failed" %}
+                        <div class="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                            <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </div>
+                        {% else if stage.status == "running" %}
+                        <div class="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
+                        {% else %}
+                        <div class="w-4 h-4 rounded-full border-2 border-zinc-300 dark:border-zinc-600"></div>
+                        {% endif %}
+
+                        <span class="text-xs font-medium text-zinc-900 dark:text-zinc-100">{{ stage.name }}</span>
+                        <span class="text-xs text-zinc-500">{{ stage.duration }}</span>
+                    </button>
+
+                    <!-- Arrow connector -->
+                    {% if !loop.last %}
+                    <svg class="w-5 h-5 text-zinc-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Panel -->
+        <div class="flex-1 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col">
         <!-- Logs Header -->
         <div class="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between flex-shrink-0">
             <div class="flex items-center gap-3">
@@ -226,6 +284,7 @@
                 </div>
             </div>
         </div>
+        </div>
     </div>
 </div>
 
@@ -238,6 +297,66 @@
         },
         {% endfor %}
     };
+
+    const pipelineId = '{{ pipeline.id }}';
+    const runId = '{{ run.id }}';
+    let currentStageLogs = {};
+
+    async function loadLogs(stageName) {
+        const logOutput = document.getElementById('log-output');
+        const logsContainer = logOutput.querySelector('.space-y-0\\.5');
+
+        // Show loading state
+        logsContainer.innerHTML = '<div class="text-zinc-500">Loading logs...</div>';
+
+        try {
+            const response = await fetch(`/api/v1/pipelines/${pipelineId}/runs/${runId}/logs?stage=${encodeURIComponent(stageName)}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch logs');
+            }
+
+            const data = await response.json();
+            currentStageLogs[stageName] = data.logs;
+
+            if (data.logs.length === 0) {
+                logsContainer.innerHTML = '<div class="text-zinc-500">No logs available for this stage.</div>';
+                return;
+            }
+
+            // Render logs
+            logsContainer.innerHTML = '';
+            data.logs.forEach((log, index) => {
+                const line = document.createElement('div');
+                line.className = 'flex';
+
+                // Color based on stream
+                let contentClass = 'text-zinc-300';
+                if (log.stream === 'stderr') {
+                    contentClass = 'text-red-400';
+                } else if (log.stream === 'system') {
+                    contentClass = 'text-blue-400';
+                }
+
+                // Escape HTML in content
+                const escapedContent = log.content
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+
+                line.innerHTML = `<span class="w-12 text-zinc-600 select-none flex-shrink-0">${index + 1}</span><span class="${contentClass}">${escapedContent}</span>`;
+                logsContainer.appendChild(line);
+            });
+
+            // Scroll to bottom if running
+            const stage = stages[stageName];
+            if (stage && stage.status === 'running') {
+                logOutput.scrollTop = logOutput.scrollHeight;
+            }
+        } catch (error) {
+            console.error('Error loading logs:', error);
+            logsContainer.innerHTML = '<div class="text-red-400">Error loading logs. Please try again.</div>';
+        }
+    }
 
     function selectJob(jobName) {
         // Update selected state in sidebar
@@ -275,7 +394,8 @@
             }
         }
 
-        // TODO: Load actual logs for this job via API
+        // Load logs for this stage
+        loadLogs(jobName);
     }
 
     function toggleFullscreen() {

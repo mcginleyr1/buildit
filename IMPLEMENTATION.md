@@ -1,319 +1,277 @@
 # BuildIt Implementation Status
 
-Current implementation status and next steps for the BuildIt CI/CD platform.
+Current implementation status and recent changes.
 
 ---
 
-## Completed
+## Recently Completed (2024-11-28)
 
-### Phase 1: Database Foundation ✅
+### Stage Result Persistence ✅
+- Added `create_stage_result`, `update_stage_result_started`, `update_stage_result_finished` to PipelineRepo
+- Wired up orchestrator events to persist stage results in real-time
+- Stage results now stored with actual timestamps and status
+- Run duration calculated from earliest stage start to latest stage finish
 
-- [x] Create K8s namespace `buildit`
-- [x] Deploy PostgreSQL via K8s manifest
-- [x] Create `buildit` database and user
-- [x] Database migrations with psql-based runner
-- [x] `001_tenants.sql` - tenants table
-- [x] `002_pipelines.sql` - pipelines and pipeline_runs tables
-- [x] `003_job_queue.sql` - job_queue table for scheduler
-- [x] `004_stages.sql` - stages and stage_results tables
-- [x] `005_deployment_targets.sql` - deployment infrastructure
-- [x] `006_multi_tenancy.sql` - organizations, users, memberships, API keys
+### Variable Interpolation System ✅
+- Created `buildit-config/src/variables.rs` with `VariableContext` and `VariableContextBuilder`
+- Supports: `${git.sha}`, `${git.branch}`, `${git.short_sha}`, `${git.message}`, `${git.author}`
+- Supports: `${pipeline.id}`, `${pipeline.name}`, `${run.id}`, `${run.number}`
+- Supports: `${stage.name}`, `${stage.index}`, `${env.VAR}`, `${secrets.NAME}`, `${custom.key}`
+- Integrated into orchestrator for command and environment variable interpolation
 
-### Phase 2: Core Domain Types ✅
+### Run Detail Page Redesign ✅
+- Replaced confusing swimlane layout with GitHub Actions-inspired design
+- **Left panel**: Run summary (status, duration, trigger, git info) + Jobs list
+- **Right panel**: Pipeline Flow DAG (compact horizontal) + Logs viewer
+- Jobs list shows status icon, name, duration - click to view logs
+- DAG shows pipeline flow with status colors and arrows
 
-- [x] Define core types in `buildit-core`:
-  - `ResourceId`, `Pipeline`, `Stage`, `StageAction`
-  - `PipelineRun`, `StageResult`, `PipelineStatus`
-  - `Trigger`, `TriggerInfo`, `GitInfo`
-  - `JobSpec`, `JobHandle`, `JobResult`, `JobStatus`
-  - `DeploymentSpec`, `DeploymentHandle`, `DeploymentState`
+### Navigation Cleanup ✅
+- Removed redundant "Runs" nav item from sidebar
+- Runs are now accessed through Pipelines (as they should be)
 
-### Phase 3: Local Executor (Docker) ✅
-
-- [x] Add `bollard` crate for Docker API
-- [x] Implement `LocalDockerExecutor`:
-  - [x] `spawn()` - create and start container
-  - [x] `logs()` - stream container logs
-  - [x] `status()` - check container state
-  - [x] `wait()` - wait for container exit
-  - [x] `cancel()` - stop and remove container
-- [x] Volume & workspace handling
-- [x] Environment variable injection
-
-### Phase 4: Pipeline Orchestrator ✅
-
-- [x] Build execution DAG from pipeline stages
-- [x] Track stage states (pending, running, completed, failed)
-- [x] Execute stages respecting dependencies
-- [x] `PipelineOrchestrator` in buildit-scheduler
-- [x] Event channel for real-time updates
-
-### Phase 5: API Server ✅
-
-- [x] Create `main.rs` with server startup
-- [x] Database pool initialization (SQLx)
-- [x] Axum 0.8 server with graceful shutdown
-- [x] Core API endpoints:
-  - [x] `GET /api/v1/tenants` - list tenants
-  - [x] `POST /api/v1/tenants` - create tenant
-  - [x] `GET /api/v1/pipelines` - list pipelines
-  - [x] `POST /api/v1/pipelines` - create pipeline
-  - [x] `GET /api/v1/pipelines/{id}` - get pipeline
-  - [x] `POST /api/v1/pipelines/{id}/runs` - trigger run
-  - [x] `GET /api/v1/pipelines/{id}/runs` - list runs
-- [x] WebSocket `/ws` endpoint for real-time updates
-- [x] Health check endpoints (`/health`, `/health/ready`)
-
-### Phase 6: User Interface ✅
-
-- [x] Askama 0.14 templates with askama_web for Axum 0.8 compatibility
-- [x] Tailwind CSS via CDN
-- [x] Base layout with sidebar navigation
-- [x] Dark/light theme toggle with localStorage persistence
-- [x] htmx integration for dynamic updates
-- [x] WebSocket extension for live updates
-
-**Pages Implemented:**
-- [x] Dashboard (`/`) - pipeline count, run stats, success rate, recent runs
-- [x] Pipelines list (`/pipelines`)
-- [x] Pipeline detail (`/pipelines/{id}`) - with run history
-- [x] Run detail (`/pipelines/{id}/runs/{run_id}`) - with log viewer
-- [x] Pipeline creation wizard (`/pipelines/new`) - 7-step wizard
-- [x] Runs list (`/runs`) - all runs across pipelines
-- [x] Environments (`/environments`) - deployment environments
-- [x] Services (`/services`) - deployed services
-- [x] History (`/history`) - deployment history
-- [x] Targets (`/targets`) - infrastructure targets
-- [x] Settings - General (`/settings`)
-- [x] Settings - Team (`/settings/team`) - organization members
-- [x] Settings - Secrets (`/settings/secrets`)
-- [x] Settings - Tokens (`/settings/tokens`) - API keys
-- [x] Settings - Git (`/settings/git`) - provider connections
-- [x] Settings - Notifications (`/settings/notifications`)
-
-### Phase 7: CLI Tool ✅
-
-- [x] Basic CLI structure with clap
-- [x] `buildit validate` - validate pipeline config
-- [x] `buildit run` - execute pipeline locally with Docker
-- [x] Real-time log streaming in terminal
-- [x] KDL config file parsing
-
-### Phase 8: Multi-Tenancy Data Model ✅
-
-- [x] Organizations table (id, name, slug, plan, billing_email)
-- [x] Users table (id, email, name, password_hash, email_verified)
-- [x] Organization memberships (org_id, user_id, role, invited_by)
-- [x] API keys (org_id, name, key_hash, key_prefix, scopes, expires_at)
-- [x] Repository methods for all CRUD operations
-- [x] UI pages connected to database
-
-### Development Environment ✅
-
-- [x] Tilt + Kubernetes local dev setup
-- [x] K8s manifests (`k8s/base/`)
-  - [x] namespace.yaml
-  - [x] postgres.yaml (with PVC, secrets)
-  - [x] api.yaml (with RBAC)
-  - [x] migrations-job.yaml
-  - [x] kustomization.yaml
-- [x] Dockerfile.dev with cargo-watch for live reload
-- [x] Dockerfile.migrations with psql
-- [x] Tiltfile with resource dependencies
-- [x] OrbStack Kubernetes compatibility
-
-### Code Quality ✅
-
-- [x] Zero compiler warnings across all crates
-- [x] cargo fmt applied
-- [x] Consistent error handling with thiserror
+### Stable Local Access ✅
+- Changed API service from ClusterIP to NodePort
+- Fixed NodePort at 30080
+- Access BuildIt at **http://localhost:30080** (no port forwarding needed)
 
 ---
 
-## In Progress
+## Current State
 
-Nothing currently in progress.
+### What Works
+- **Pipelines**: Create, list, view, trigger runs
+- **Pipeline Runs**: Execute with Docker or K8s, track stage results, view logs
+- **UI**: Full dashboard, pipeline pages, run detail with DAG, settings pages
+- **CLI**: `buildit validate` and `buildit run` for local execution
+- **Database**: Full schema with migrations, stage results persisted
 
----
-
-## Not Started (Priority Order)
-
-### High Priority
-
-#### 1. Kubernetes Executor
-- [ ] Implement `KubernetesExecutor.spawn()` - create K8s Job
-- [ ] Configure pod spec (image, command, env, resources)
-- [ ] Implement `logs()` - stream pod logs via K8s API
-- [ ] Implement `status()` - watch Job status
-- [ ] Implement `wait()` - wait for Job completion
-- [ ] Implement `cancel()` - delete Job
-
-#### 2. Authentication
-- [ ] OIDC/OAuth2 integration
-- [ ] GitHub OAuth provider
-- [ ] Google OAuth provider
-- [ ] Session management with cookies
-- [ ] Connect login to users table
-- [ ] Protect routes with auth middleware
-
-#### 3. DAG Visualization
-- [ ] Canvas/SVG-based stage graph
-- [ ] Show stage dependencies visually
-- [ ] Real-time status updates on nodes
-- [ ] Click to view stage logs
-
-### Medium Priority
-
-#### 4. Kubernetes Deployer
-- [ ] Implement `KubernetesDeployer.deploy()`
-- [ ] Create/update K8s Deployments
-- [ ] Rolling update support
-- [ ] Rollback functionality
-
-#### 5. Artifact Storage
-- [ ] `ArtifactStore` trait
-- [ ] S3 implementation
-- [ ] GCS implementation
-- [ ] Artifact upload/download in stages
-
-#### 6. Secret Management
-- [ ] `SecretStore` trait
-- [ ] Kubernetes Secrets backend
-- [ ] Vault backend
-- [ ] Inject secrets into job containers
-
-#### 7. Notifications
-- [ ] Slack webhook integration
-- [ ] Discord webhook integration
-- [ ] Custom webhook support
-- [ ] Email notifications
-
-#### 8. Git Webhooks
-- [ ] GitHub webhook receiver endpoint
-- [ ] GitLab webhook receiver endpoint
-- [ ] Signature verification
-- [ ] Auto-trigger pipelines on push/PR
-
-### Lower Priority
-
-#### 9. Helm Chart
-- [ ] Chart structure
-- [ ] API server deployment
-- [ ] Scheduler deployment
-- [ ] RBAC configuration
-- [ ] Ingress configuration
-- [ ] Values for different environments
-
-#### 10. Advanced Pipeline Features
-- [ ] Variable interpolation (`{git.sha}`, `{branch}`)
-- [ ] Matrix builds
-- [ ] Conditional execution (`when` clauses)
-- [ ] Manual approval gates
-- [ ] Caching layer
-
-#### 11. Additional Deployers
-- [ ] Fly.io deployer
-- [ ] Cloud Run deployer
-- [ ] Lambda deployer
-
-#### 12. Authorization
-- [ ] OPA integration
-- [ ] Policy definitions
-- [ ] Audit logging
+### What's Placeholder/Mock
+- **Pipeline Creation Wizard**: UI exists but doesn't actually create pipelines
+- **Logs in Run Detail**: Shows placeholder, not actual stage logs
+- **Settings Pages**: UI complete but actions don't persist
+- **Environments/Services/Targets**: UI exists, limited functionality
 
 ---
 
-## Architecture
+## Database Schema (Current)
 
+```sql
+-- Multi-tenancy
+tenants (id, name, slug)
+organizations (id, name, slug, plan, billing_email)
+users (id, email, name, password_hash, email_verified)
+org_memberships (org_id, user_id, role, invited_by)
+api_keys (org_id, name, key_hash, key_prefix, scopes, expires_at)
+
+-- Pipelines
+pipelines (id, tenant_id, name, repository, config, created_at, updated_at)
+pipeline_stages (id, pipeline_id, name, image, commands, depends_on, env, timeout_seconds)
+pipeline_runs (id, pipeline_id, number, status, trigger_info, git_info, created_at, started_at, finished_at)
+stage_results (id, pipeline_run_id, stage_name, status, job_id, started_at, finished_at, error_message)
+
+-- Job Queue
+job_queue (id, job_type, payload, status, attempts, scheduled_for, locked_until, locked_by)
+
+-- Deployments
+deployment_targets (id, tenant_id, name, target_type, config)
+environments (id, tenant_id, name, slug, target_id)
+services (id, tenant_id, environment_id, name, config)
+deployments (id, service_id, pipeline_run_id, status, config, started_at, finished_at)
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         API Server                              │
-│                     (Axum + WebSockets)                         │
-│                      localhost:3000                             │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        ▼                   ▼                   ▼
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│  Scheduler   │    │   Database   │    │   Executor   │
-│ (Orchestrator)│   │  (PostgreSQL)│    │   (Docker)   │
-└──────────────┘    └──────────────┘    └──────────────┘
-```
+
+---
 
 ## Crate Structure
 
 ```
 buildit/
 ├── crates/
-│   ├── buildit-api/        # Axum web server + UI templates
-│   ├── buildit-core/       # Domain types, traits
-│   ├── buildit-executor/   # Job execution (Docker, K8s)
-│   ├── buildit-deployer/   # Deployment logic
+│   ├── buildit-api/        # Axum server + Askama templates
+│   │   ├── src/
+│   │   │   ├── main.rs
+│   │   │   ├── state.rs    # AppState with repos + orchestrator
+│   │   │   ├── routes/
+│   │   │   │   ├── mod.rs
+│   │   │   │   ├── ui.rs       # HTML page handlers
+│   │   │   │   ├── pipelines.rs # API endpoints
+│   │   │   │   └── ...
+│   │   │   └── ws.rs       # WebSocket handler
+│   │   └── templates/
+│   │       ├── base.html
+│   │       └── pages/
+│   │           ├── pipelines/
+│   │           │   ├── list.html
+│   │           │   ├── detail.html
+│   │           │   ├── run.html      # Run detail with DAG + logs
+│   │           │   └── new.html      # Creation wizard
+│   │           └── ...
+│   │
+│   ├── buildit-core/       # Domain types
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── executor.rs    # JobSpec, JobHandle, Executor trait
+│   │       ├── deployer.rs    # DeploymentSpec, Deployer trait
+│   │       └── pipeline.rs    # Pipeline, Stage, StageAction
+│   │
+│   ├── buildit-config/     # KDL parsing + variable interpolation
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── kdl.rs         # KDL parser
+│   │       └── variables.rs   # VariableContext, interpolation
+│   │
+│   ├── buildit-db/         # Database layer
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── repo/
+│   │       │   ├── tenant.rs
+│   │       │   ├── pipeline.rs  # PipelineRepo with stage results
+│   │       │   └── ...
+│   │       └── migrations/
+│   │
+│   ├── buildit-executor/   # Job execution
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── docker.rs      # LocalDockerExecutor
+│   │       └── kubernetes.rs  # KubernetesExecutor
+│   │
 │   ├── buildit-scheduler/  # Pipeline orchestration
-│   ├── buildit-config/     # KDL parsing
-│   ├── buildit-db/         # Database layer (SQLx)
-│   ├── buildit-db-queries/ # Generated Clorinde queries
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── orchestrator.rs  # PipelineOrchestrator, DAG execution
+│   │       ├── queue.rs
+│   │       └── worker.rs
+│   │
 │   └── buildit-cli/        # CLI tool
-├── k8s/
-│   └── base/               # Kubernetes manifests
-├── scripts/
-│   └── run-migrations.sh   # Migration runner
-├── Tiltfile                # Local K8s dev config
-├── Dockerfile.dev          # Dev image with cargo-watch
-└── Dockerfile.migrations   # Migration job image
+│       └── src/
+│           └── main.rs
+│
+├── k8s/base/               # Kubernetes manifests
+│   ├── namespace.yaml
+│   ├── postgres.yaml
+│   ├── api.yaml            # NodePort 30080
+│   └── migrations-job.yaml
+│
+├── examples/               # Example pipeline configs
+│   ├── echo.kdl
+│   └── simple.kdl
+│
+├── Tiltfile
+├── Dockerfile.dev
+└── Dockerfile.migrations
 ```
 
 ---
 
-## Database Schema
+## Key Files Reference
 
-### Core Tables
-- `tenants` - Legacy tenant table (being replaced by organizations)
-- `pipelines` - Pipeline definitions
-- `pipeline_runs` - Pipeline execution instances
-- `stages` - Stage definitions within pipelines
-- `stage_results` - Stage execution results
-- `job_queue` - Background job queue
+### Pipeline Execution Flow
+1. `crates/buildit-api/src/routes/pipelines.rs:trigger_run()` - Creates run, spawns orchestrator
+2. `crates/buildit-scheduler/src/orchestrator.rs` - Executes stages in DAG order
+3. `crates/buildit-executor/src/docker.rs` or `kubernetes.rs` - Runs containers
+4. `crates/buildit-db/src/repo/pipeline.rs` - Persists stage results
 
-### Deployment Tables
-- `deployment_targets` - Infrastructure targets (K8s clusters, Fly orgs)
-- `environments` - Deployment environments (dev, staging, prod)
-- `services` - Deployed applications
-- `deployments` - Deployment history
+### UI Templates
+- `templates/base.html` - Sidebar layout, theme toggle
+- `templates/pages/pipelines/run.html` - Run detail with DAG + logs
+- `templates/pages/pipelines/detail.html` - Pipeline with runs list
 
-### Multi-Tenancy Tables
-- `organizations` - Organizations/teams
-- `users` - User accounts
-- `org_memberships` - User-organization relationships with roles
-- `api_keys` - API authentication tokens
+### Variable Interpolation
+- `crates/buildit-config/src/variables.rs` - VariableContext, VariableContextBuilder
 
 ---
 
-## Quick Start (Local Development)
+## Quick Reference
 
 ```bash
-# Start local K8s cluster (OrbStack recommended)
-tilt up
+# Access UI (stable URL, no port-forward needed)
+open http://localhost:30080
 
-# Access UI
-open http://localhost:3000
+# Trigger a pipeline run via API
+curl -X POST http://localhost:30080/api/v1/pipelines/{id}/runs \
+  -H "Content-Type: application/json" \
+  -d '{"branch": "main"}'
 
-# Run CLI locally
+# Run pipeline locally with CLI
 cargo run -p buildit-cli -- run examples/echo.kdl
 
-# View Tilt dashboard
-open http://localhost:10350
+# Check stage results in database
+kubectl -n buildit exec -it deploy/postgres -- psql -U buildit -d buildit \
+  -c "SELECT stage_name, status, started_at, finished_at FROM stage_results WHERE pipeline_run_id = 'xxx';"
 
-# Run with zero warnings
-cargo build
+# Rebuild and deploy API
+docker build -t buildit-api:dev -f Dockerfile.dev .
+kubectl -n buildit rollout restart deployment/api
 ```
 
 ---
 
-## Recent Changes
+## Next Up: Infrastructure-as-Code
 
-### 2024-11-26
-- Fixed empty server responses (askama 0.12 -> 0.14 compatibility with axum 0.8)
-- Updated askama_web to 0.14 with axum-0.8 feature
-- Fixed all compiler warnings across all crates
-- Applied cargo fmt to entire codebase
+### Database Tables Needed
+```sql
+-- Stacks (Terraform workspaces)
+CREATE TABLE stacks (
+    id UUID PRIMARY KEY,
+    org_id UUID REFERENCES organizations(id),
+    name VARCHAR(255) NOT NULL,
+    repository VARCHAR(512) NOT NULL,
+    path VARCHAR(512) DEFAULT '.',
+    terraform_version VARCHAR(32) DEFAULT '1.6',
+    auto_apply BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Stack Variables
+CREATE TABLE stack_variables (
+    id UUID PRIMARY KEY,
+    stack_id UUID REFERENCES stacks(id) ON DELETE CASCADE,
+    key VARCHAR(255) NOT NULL,
+    value TEXT,
+    sensitive BOOLEAN DEFAULT false,
+    UNIQUE(stack_id, key)
+);
+
+-- Stack Runs (plan/apply)
+CREATE TABLE stack_runs (
+    id UUID PRIMARY KEY,
+    stack_id UUID REFERENCES stacks(id),
+    run_type VARCHAR(32) NOT NULL, -- 'plan', 'apply', 'destroy'
+    status VARCHAR(32) NOT NULL,   -- 'pending', 'planning', 'planned', 'applying', 'succeeded', 'failed'
+    plan_output TEXT,
+    apply_output TEXT,
+    changes_add INT DEFAULT 0,
+    changes_change INT DEFAULT 0,
+    changes_destroy INT DEFAULT 0,
+    triggered_by UUID REFERENCES users(id),
+    approved_by UUID REFERENCES users(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    started_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ
+);
+
+-- State Storage
+CREATE TABLE stack_state (
+    id UUID PRIMARY KEY,
+    stack_id UUID REFERENCES stacks(id) UNIQUE,
+    state_json JSONB NOT NULL,
+    serial BIGINT DEFAULT 0,
+    lock_id VARCHAR(255),
+    locked_by VARCHAR(255),
+    locked_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Link stacks to environments
+ALTER TABLE environments ADD COLUMN stack_id UUID REFERENCES stacks(id);
+```
+
+### Implementation Order
+1. Add database migrations for stack tables
+2. Create Stack repository with CRUD
+3. Add Stack list/detail UI pages
+4. Create TerraformExecutor (wraps terraform CLI)
+5. Implement plan workflow with diff viewer
+6. Implement apply workflow with approval
+7. Wire Stack → Environment provisioning

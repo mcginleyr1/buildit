@@ -96,6 +96,17 @@ pub trait PipelineRepo: Send + Sync {
 
     // Stage definition methods
     async fn list_stages(&self, pipeline_id: ResourceId) -> DbResult<Vec<PipelineStageRecord>>;
+    async fn create_stage(
+        &self,
+        pipeline_id: ResourceId,
+        name: &str,
+        image: Option<&str>,
+        commands: &[String],
+        depends_on: &[String],
+        env: serde_json::Value,
+        timeout_seconds: Option<i32>,
+    ) -> DbResult<PipelineStageRecord>;
+    async fn delete_stages(&self, pipeline_id: ResourceId) -> DbResult<()>;
 
     // Stage result methods
     async fn list_stage_results(&self, run_id: ResourceId) -> DbResult<Vec<StageResultRecord>>;
@@ -267,6 +278,44 @@ impl PipelineRepo for PgPipelineRepo {
         .fetch_all(&self.pool)
         .await?;
         Ok(records)
+    }
+
+    async fn create_stage(
+        &self,
+        pipeline_id: ResourceId,
+        name: &str,
+        image: Option<&str>,
+        commands: &[String],
+        depends_on: &[String],
+        env: serde_json::Value,
+        timeout_seconds: Option<i32>,
+    ) -> DbResult<PipelineStageRecord> {
+        let record = sqlx::query_as::<_, PipelineStageRecord>(
+            r#"
+            INSERT INTO pipeline_stages (id, pipeline_id, name, image, commands, depends_on, env, timeout_seconds, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+            RETURNING *
+            "#,
+        )
+        .bind(uuid::Uuid::now_v7())
+        .bind(pipeline_id.as_uuid())
+        .bind(name)
+        .bind(image)
+        .bind(commands)
+        .bind(depends_on)
+        .bind(env)
+        .bind(timeout_seconds)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(record)
+    }
+
+    async fn delete_stages(&self, pipeline_id: ResourceId) -> DbResult<()> {
+        sqlx::query("DELETE FROM pipeline_stages WHERE pipeline_id = $1")
+            .bind(pipeline_id.as_uuid())
+            .execute(&self.pool)
+            .await?;
+        Ok(())
     }
 
     async fn list_stage_results(&self, run_id: ResourceId) -> DbResult<Vec<StageResultRecord>> {

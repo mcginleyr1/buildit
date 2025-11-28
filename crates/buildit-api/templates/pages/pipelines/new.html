@@ -1441,9 +1441,122 @@ stage "deploy" needs="build" {
     // Form submission
     document.getElementById("pipeline-form").addEventListener("submit", async (e) => {
         e.preventDefault();
-        // TODO: Collect form data and POST to API
-        alert("Pipeline created successfully!");
-        window.location.href = "/pipelines";
+
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Creating...
+        `;
+
+        try {
+            // Collect form data
+            const name = form.querySelector('[name="name"]').value.trim();
+            const repository = form.querySelector('[name="repository"]').value.trim();
+            const branch = form.querySelector('[name="branch"]').value.trim() || "main";
+            const configContent = form.querySelector('[name="config_content"]').value.trim();
+
+            // Validate required fields
+            if (!name) {
+                throw new Error("Pipeline name is required");
+            }
+            if (!repository) {
+                throw new Error("Repository URL is required");
+            }
+
+            // Collect triggers
+            const triggers = [];
+            if (form.querySelector('[name="trigger_push"]')?.checked) {
+                const branches = form.querySelector('[name="push_branches"]')?.value || "main";
+                triggers.push({ type: "push", branches: branches.split(",").map((b) => b.trim()) });
+            }
+            if (form.querySelector('[name="trigger_pr"]')?.checked) {
+                triggers.push({ type: "pull_request" });
+            }
+            if (form.querySelector('[name="trigger_schedule"]')?.checked) {
+                const cron = form.querySelector('[name="schedule_cron"]')?.value;
+                if (cron) triggers.push({ type: "schedule", cron: cron });
+            }
+
+            // Collect environment variables
+            const envVars = {};
+            form.querySelectorAll("#env-vars-list .env-var-row").forEach((row) => {
+                const key = row.querySelector('input[placeholder="KEY"]')?.value?.trim();
+                const value = row.querySelector('input[placeholder="value"]')?.value?.trim();
+                if (key) envVars[key] = value || "";
+            });
+
+            // Parse config or use defaults
+            let stages = [];
+            if (configContent) {
+                // For now, store raw config - could parse KDL here
+                stages = [
+                    {
+                        name: "build",
+                        image: "alpine:latest",
+                        commands: ['echo "Running build"'],
+                        depends_on: [],
+                    },
+                ];
+            } else {
+                // Default stage
+                stages = [
+                    {
+                        name: "build",
+                        image: "alpine:latest",
+                        commands: ['echo "Hello from BuildIt"'],
+                        depends_on: [],
+                    },
+                ];
+            }
+
+            // Build request payload
+            const payload = {
+                tenant_id: "{{ tenant_id }}",
+                name: name,
+                repository: repository,
+                config: {
+                    branch: branch,
+                    stages: stages,
+                    triggers: triggers,
+                    env: envVars,
+                    raw_config: configContent || null,
+                },
+            };
+
+            // POST to API
+            const response = await fetch("/api/v1/pipelines", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(error || "Failed to create pipeline");
+            }
+
+            const result = await response.json();
+
+            // Redirect to the new pipeline
+            window.location.href = `/pipelines/${result.id}`;
+        } catch (error) {
+            console.error("Error creating pipeline:", error);
+            alert("Error: " + error.message);
+
+            // Reset button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     });
 </script>
 {% endblock %}

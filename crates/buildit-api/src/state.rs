@@ -1,9 +1,12 @@
 //! Application state.
 
 use buildit_db::PgDeploymentRepo;
+use buildit_db::PgLogRepo;
 use buildit_db::PgOrganizationRepo;
 use buildit_db::PgPipelineRepo;
 use buildit_db::PgTenantRepo;
+
+use crate::ws::Broadcaster;
 use buildit_executor::{KubernetesExecutor, LocalDockerExecutor};
 use buildit_scheduler::PipelineOrchestrator;
 use sqlx::PgPool;
@@ -54,6 +57,8 @@ pub struct AppState {
     pub pipeline_repo: Arc<PgPipelineRepo>,
     pub deployment_repo: Arc<PgDeploymentRepo>,
     pub organization_repo: Arc<PgOrganizationRepo>,
+    pub log_repo: Arc<PgLogRepo>,
+    pub broadcaster: Arc<Broadcaster>,
     pub orchestrator: Option<Arc<PipelineOrchestrator>>,
 }
 
@@ -63,6 +68,8 @@ impl AppState {
         let pipeline_repo = Arc::new(PgPipelineRepo::new(pool.clone()));
         let deployment_repo = Arc::new(PgDeploymentRepo::new(pool.clone()));
         let organization_repo = Arc::new(PgOrganizationRepo::new(pool.clone()));
+        let log_repo = Arc::new(PgLogRepo::new(pool.clone()));
+        let broadcaster = Arc::new(Broadcaster::new());
 
         // Orchestrator is initialized async via init_executor()
         let orchestrator = None;
@@ -73,6 +80,8 @@ impl AppState {
             pipeline_repo,
             deployment_repo,
             organization_repo,
+            log_repo,
+            broadcaster,
             orchestrator,
         }
     }

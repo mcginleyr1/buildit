@@ -84,8 +84,9 @@ spec:
   ports:
     - port: 80
       targetPort: 3000
+      nodePort: 30080
       name: http
-  type: LoadBalancer
+  type: NodePort
 ---
 apiVersion: v1
 kind: ServiceAccount

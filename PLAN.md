@@ -1,6 +1,6 @@
-# BuildIt - CI/CD Platform Plan
+# BuildIt - CI/CD & Infrastructure Platform
 
-A modern, Rust-based CI/CD platform with container-native builds and multi-target deployments.
+A modern, Rust-based CI/CD platform with container-native builds, multi-target deployments, and infrastructure-as-code management.
 
 ## Related Documentation
 
@@ -11,12 +11,46 @@ A modern, Rust-based CI/CD platform with container-native builds and multi-targe
 
 ## Vision
 
-Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
+Replace Jenkins/CircleCI/Argo + Spacelift/Terraform Cloud with a unified, self-hosted platform that:
 - Runs natively in Kubernetes
 - Supports multi-tenant deployments
 - Deploys to K8s, Fly.io, Cloud Run, Lambda, etc.
+- Manages infrastructure via Terraform/OpenTofu
 - Has a modern, real-time UI with DAG visualization
 - Uses KDL for configuration (not YAML)
+
+---
+
+## Core Concepts
+
+### The Big Picture
+
+```
+Stacks (IaC)              →  provision infrastructure (Terraform)
+    ↓ creates
+Environments              ←  deployment targets (dev/staging/prod)
+    ↑ deploys to
+Pipelines (CI/CD)         →  build/test/deploy code
+    ↓ produces
+Services                  →  running workloads
+```
+
+### Pipelines (CI/CD)
+- **Pipeline**: A build/test/deploy workflow defined in KDL
+- **Stage**: A step in a pipeline (runs in a container)
+- **Run**: An execution of a pipeline
+- **DAG**: Stages can depend on other stages, forming a directed acyclic graph
+
+### Stacks (Infrastructure-as-Code)
+- **Stack**: A Terraform workspace (git repo + path + state + variables)
+- **Stack Run**: A plan/apply operation on a stack
+- **Drift Detection**: Scheduled plans to detect infrastructure drift
+- **Policy**: OPA-based checks before apply (cost, security, compliance)
+
+### Environments & Deployments
+- **Environment**: A deployment target (dev, staging, production) - can be provisioned by a Stack
+- **Service**: A deployed application (K8s Deployment, Fly app, etc.)
+- **Target**: Infrastructure where services run (K8s cluster, Fly org, GCP project)
 
 ---
 
@@ -26,45 +60,55 @@ Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
 ┌─────────────────────────────────────────────────────────────────┐
 │                         API Server                              │
 │                     (Axum + WebSockets)                         │
+│                    http://localhost:30080                       │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
-        ┌───────────────────┼───────────────────┐
-        ▼                   ▼                   ▼
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│  Scheduler   │    │   Artifact   │    │    Secret    │
-│   (Queue)    │    │    Store     │    │    Store     │
-└──────┬───────┘    └──────────────┘    └──────────────┘
-       │
-       ├─────────────────────────────────┐
-       ▼                                 ▼
-┌──────────────┐                 ┌──────────────┐
-│   Executor   │                 │   Deployer   │
-│    Pool      │                 │     Pool     │
-└──────┬───────┘                 └──────┬───────┘
-       │                                │
-   ┌───┴───┐                        ┌───┴───┐
-   ▼       ▼                        ▼       ▼
-┌─────┐ ┌─────┐                  ┌─────┐ ┌─────┐
-│ K8s │ │Local│                  │ K8s │ │Fly  │
-│Exec │ │Docker                  │Depl │ │Depl │
-└─────┘ └─────┘                  └─────┘ └─────┘
+    ┌───────────────────────┼───────────────────────────────────┐
+    ▼                       ▼                       ▼           ▼
+┌──────────┐         ┌──────────┐         ┌──────────┐   ┌──────────┐
+│Scheduler │         │ Database │         │ Executor │   │  Stack   │
+│(Pipeline │         │(Postgres)│         │ (Docker/ │   │ Runner   │
+│Orchestr.)│         │          │         │   K8s)   │   │(Terraform│
+└──────────┘         └──────────┘         └──────────┘   └──────────┘
+                                                │               │
+                                            ┌───┴───┐       ┌───┴───┐
+                                            ▼       ▼       ▼       ▼
+                                         ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐
+                                         │Local│ │ K8s │ │ AWS │ │ GCP │
+                                         │Dock.│ │ Job │ │     │ │     │
+                                         └─────┘ └─────┘ └─────┘ └─────┘
 ```
 
 ---
 
-## Core Concepts
+## Database Schema
 
-### Pipelines (CI)
-- **Pipeline**: A build/test workflow defined in KDL
-- **Stage**: A step in a pipeline (runs in a container)
-- **Run**: An execution of a pipeline
-- **DAG**: Stages can depend on other stages, forming a directed acyclic graph
+### Core Tables
+```sql
+-- Organizations & Users
+organizations (id, name, slug, plan, billing_email)
+users (id, email, name, password_hash)
+org_memberships (org_id, user_id, role)
+api_keys (org_id, name, key_hash, scopes, expires_at)
 
-### Deployments (CD)
-- **Environment**: A deployment target (dev, staging, production)
-- **Service**: A deployed application (K8s Deployment, Fly app, Cloud Run service)
-- **Target**: Infrastructure where services run (K8s cluster, Fly org, GCP project)
-- **Deployment**: A release/rollout of a service version
+-- Pipelines (CI/CD)
+pipelines (id, tenant_id, name, repository, config)
+pipeline_stages (id, pipeline_id, name, image, commands, depends_on)
+pipeline_runs (id, pipeline_id, number, status, trigger_info, git_info)
+stage_results (id, pipeline_run_id, stage_name, status, started_at, finished_at)
+
+-- Stacks (IaC) - NEW
+stacks (id, org_id, name, repository, path, terraform_version, auto_apply)
+stack_variables (id, stack_id, key, value, sensitive)
+stack_runs (id, stack_id, type, status, plan_output, triggered_by)
+stack_state (id, stack_id, state_json, lock_id, locked_by)
+
+-- Environments & Deployments
+environments (id, org_id, name, slug, stack_id, cluster_url, credentials)
+services (id, environment_id, name, image, replicas, status)
+deployments (id, service_id, pipeline_run_id, status, started_at)
+deployment_targets (id, org_id, name, type, config)
+```
 
 ---
 
@@ -74,255 +118,137 @@ Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
 - [x] Rust workspace with Cargo
 - [x] Crate structure (api, core, executor, deployer, scheduler, config, db, cli)
 - [x] Development environment (Tilt + Kubernetes + OrbStack)
+- [x] NodePort service for stable local access (http://localhost:30080)
 
 ### 1.2 Database Layer ✅
 - [x] PostgreSQL with SQLx
-- [x] Core schema (tenants, pipelines, pipeline_runs, stages, stage_results, job_queue)
-- [x] Migrations system (psql-based)
-- [x] Repository pattern with Clorinde for type-safe SQL
+- [x] Core schema (tenants, pipelines, pipeline_runs, stages, stage_results)
+- [x] Migrations system
+- [x] Repository pattern
 
-### 1.3 Configuration System (Partial)
-- [x] KDL parser for pipeline definitions (basic)
-- [ ] System configuration parser
-- [ ] Variable interpolation (`{git.sha}`, `{branch}`)
-- [ ] Configuration validation
+### 1.3 Configuration System ✅
+- [x] KDL parser for pipeline definitions
+- [x] Variable interpolation (`${git.sha}`, `${git.branch}`, `${env.VAR}`)
+- [x] VariableContext with git, pipeline, run, stage, env, secrets contexts
 
 ---
 
-## Phase 2: Core Domain ✅
+## Phase 2: Pipeline Engine ✅
 
-### 2.1 Domain Types ✅
-- [x] Core types: `ResourceId`, `Image`, `HealthStatus`, `EnvVar`
-- [x] Executor types: `JobSpec`, `JobHandle`, `JobResult`, `JobStatus`, `LogLine`
-- [x] Deployer types: `DeploymentSpec`, `DeploymentHandle`, `DeploymentState`
-- [x] Pipeline types: `Pipeline`, `Stage`, `StageResult`, `PipelineRun`, `Trigger`
-
-### 2.2 Executors (Partial)
+### 2.1 Executors ✅
 - [x] `Executor` trait
 - [x] `LocalDockerExecutor` (dev/small teams)
-- [ ] `KubernetesExecutor` (production) - **NEXT PRIORITY**
+- [x] `KubernetesExecutor` (production) - runs jobs as K8s Jobs
 
-### 2.3 Deployers
-- [x] `Deployer` trait
-- [ ] `KubernetesDeployer`
-- [ ] `FlyDeployer`
-- [ ] `CloudRunDeployer`
-
-### 2.4 Storage
-- [ ] `ArtifactStore` trait
-- [ ] S3/GCS implementations
-- [ ] `SecretStore` trait
-- [ ] Vault/K8s Secrets implementations
-
----
-
-## Phase 3: Pipeline Engine ✅
-
-### 3.1 Pipeline Parser ✅
-- [x] KDL parsing
-- [x] DAG construction
-- [ ] Cycle detection
-- [ ] Matrix builds
-- [ ] Conditional execution (`when` clauses)
-
-### 3.2 Scheduler ✅
-- [x] PostgreSQL-based job queue
-- [ ] Priority queue
-- [ ] Concurrency limits
-- [ ] Retry logic with backoff
-
-### 3.3 Orchestrator ✅
-- [x] DAG execution
+### 2.2 Orchestrator ✅
+- [x] DAG execution with topological sort
 - [x] Stage dependencies
-- [x] Event emission for UI
-- [ ] Artifact passing
-- [ ] Caching layer
-- [ ] Manual approval gates
+- [x] Event emission (StageStarted, StageCompleted, StageLog, PipelineCompleted)
+- [x] Stage result persistence to database
+- [x] Real duration tracking
 
-### 3.4 Webhooks
-- [ ] GitHub webhook receiver
-- [ ] GitLab webhook receiver
-- [ ] Signature verification
-- [ ] Event filtering
+### 2.3 Scheduler ✅
+- [x] PostgreSQL-based job queue
+- [x] Pipeline run triggering via API
 
 ---
 
-## Phase 4: Multi-Tenancy & Security ✅
+## Phase 3: User Interface ✅
 
-### 4.1 Multi-Tenancy Model ✅
-- [x] Organizations table with billing/plan support
-- [x] Users table with password hashing support
-- [x] Organization memberships with roles (owner, admin, member, viewer)
-- [x] API keys with scoped permissions and expiration
-- [x] Repository pattern for all multi-tenancy operations
+### 3.1 Foundation ✅
+- [x] Askama templates with Tailwind CSS
+- [x] htmx + WebSocket for real-time updates
+- [x] Dark/light theme
+- [x] Sidebar navigation
 
-### 4.2 Tenant Management ✅
-- [x] Basic CRUD
-- [ ] Tenant isolation enforcement
-- [ ] Quota enforcement
+### 3.2 Pipeline Pages ✅
+- [x] Pipeline list
+- [x] Pipeline detail with recent runs
+- [x] Run detail with GitHub Actions-style layout:
+  - Left panel: Run summary + Jobs list
+  - Right panel: Pipeline flow DAG + Logs viewer
+- [x] Pipeline creation wizard (7-step)
+- [x] Real stage statuses and durations from database
 
-### 4.3 Authentication
-- [ ] OIDC/OAuth2
-- [ ] GitHub/Google OAuth
-- [x] API tokens (database layer complete)
+### 3.3 Other Pages ✅
+- [x] Dashboard with stats
+- [x] Environments, Services, History, Targets
+- [x] Settings (General, Team, Secrets, Tokens, Git, Notifications)
+
+---
+
+## Phase 4: Infrastructure-as-Code (NEW - Next Priority)
+
+### 4.1 Stack Management
+- [ ] `stacks` table (repo, path, terraform version, variables)
+- [ ] `stack_runs` table (plan/apply, status, output)
+- [ ] `stack_state` table (terraform state storage)
+- [ ] Stack CRUD API endpoints
+- [ ] Stack UI pages under Infrastructure → Stacks
+
+### 4.2 Terraform Runner
+- [ ] `TerraformExecutor` - wraps terraform CLI
+- [ ] Run `terraform init` on stack creation
+- [ ] Run `terraform plan` and capture output
+- [ ] Plan diff viewer in UI (resources to add/change/destroy)
+- [ ] Manual approval workflow
+- [ ] Run `terraform apply` after approval
+- [ ] State locking
+
+### 4.3 Stack → Environment Link
+- [ ] Stack can provision an Environment
+- [ ] Extract outputs (cluster URL, credentials) into Environment
+- [ ] Environment shows "Managed by Stack X"
+
+### 4.4 Advanced Stack Features
+- [ ] Drift detection (scheduled plans)
+- [ ] Cost estimation integration
+- [ ] OPA policy checks before apply
+- [ ] Stack dependencies (one stack uses outputs from another)
+- [ ] PR-based plan previews
+
+---
+
+## Phase 5: Deployment Engine
+
+### 5.1 Deployers
+- [ ] `Deployer` trait
+- [ ] `KubernetesDeployer` - deploy to K8s clusters
+- [ ] `FlyDeployer` - deploy to Fly.io
+- [ ] Rollback support
+
+### 5.2 Pipeline → Environment Integration
+- [ ] Stage can target an Environment
+- [ ] Use Environment credentials for deployment
+- [ ] Deployment history linked to pipeline runs
+
+---
+
+## Phase 6: Authentication & Security
+
+### 6.1 Authentication
+- [ ] OIDC/OAuth2 (GitHub, Google)
 - [ ] Session management
+- [ ] API token authentication (database layer complete)
 
-### 4.4 Authorization
-- [ ] OPA integration
-- [ ] Policy definitions
+### 6.2 Authorization
+- [ ] OPA integration for fine-grained policies
+- [ ] Stack/Pipeline permission policies
 - [ ] Audit logging
 
 ---
 
-## Phase 5: API Server ✅
+## Phase 7: Production Readiness
 
-### 5.1 HTTP API ✅
-- [x] RESTful design with Axum
-- [x] Request validation
-- [x] Error handling
-- [ ] Rate limiting
-- [ ] OpenTelemetry tracing
-
-### 5.2 Endpoints ✅
-- [x] Pipelines CRUD
-- [x] Pipeline runs
-- [x] Tenants CRUD
-- [x] Deployments (environments, services, targets)
-- [ ] Secrets
-- [ ] Users
-
-### 5.3 WebSocket ✅
-- [x] Connection management
-- [x] Event subscription
-- [x] Log streaming
-- [ ] Authentication
-- [ ] Heartbeat
-
----
-
-## Phase 6: User Interface ✅
-
-### 6.1 Foundation ✅
-- [x] Askama templates (upgraded to v0.14 with askama_web for axum 0.8)
-- [x] Tailwind CSS
-- [x] htmx + WebSocket
-- [x] Dark/light theme
-
-### 6.2 Design System ✅
-- [x] Color palette
-- [x] Typography
-- [x] Sidebar navigation layout
-- [x] Component library (cards, buttons, forms, tables)
-
-### 6.3 Pipeline Pages ✅
-- [x] Pipeline list
-- [x] Pipeline detail with runs
-- [x] Run detail with log viewer
-- [x] **Pipeline creation wizard** (7-step: Source, Build, Triggers, Environment, Deployment, Notifications, Review)
-- [ ] DAG visualization - Key feature
-- [ ] Pipeline settings/edit
-
-### 6.4 Deployment Pages ✅
-- [x] Dashboard with stats (pipeline count, run count, success rate)
-- [x] Environments list with health status
-- [x] Services list with deployment status
-- [x] Deployment history with filtering
-- [x] Targets/Infrastructure management
-
-### 6.5 Settings Pages ✅
-- [x] General settings (organization name, slug)
-- [x] Team management (members from org_memberships)
-- [x] Secrets management
-- [x] API tokens management
-- [x] Git provider connections (GitHub, GitLab, Bitbucket placeholders)
-- [x] Notification settings (Slack, webhooks placeholders)
-
-### 6.6 UX Features
-- [ ] Command palette (Cmd+K)
-- [ ] Keyboard shortcuts
-- [ ] Toast notifications
-- [ ] Empty states (basic)
-- [ ] Loading states
-
----
-
-## Phase 7: CLI Tool ✅
-
-### 7.1 Foundation ✅
-- [x] clap for argument parsing
-- [x] `buildit validate`
-- [x] `buildit run` (local Docker)
-- [ ] Config file (~/.buildit/config)
-- [ ] Authentication
-
-### 7.2 Commands
-- [ ] `buildit login`
-- [ ] `buildit pipelines list/trigger`
-- [ ] `buildit runs list/logs/cancel`
-- [ ] `buildit deploy`
-
----
-
-## Phase 8: Kubernetes Deployment
-
-### 8.1 Helm Chart
-- [ ] Chart structure
-- [ ] API server deployment
-- [ ] Scheduler deployment
-- [ ] RBAC
-- [ ] Ingress
-
-### 8.2 Local Dev ✅
-- [x] Tiltfile
-- [x] K8s manifests
-- [x] Live reload
-
-### 8.3 Observability
+### 7.1 Observability
 - [ ] Prometheus metrics
-- [ ] Grafana dashboards
 - [ ] OpenTelemetry tracing
-- [x] Health endpoints
+- [ ] Structured logging
 
----
-
-## Milestones
-
-### M1: Local Dev MVP ✅
-- [x] Project setup
-- [x] KDL parsing
-- [x] Local Docker executor
-- [x] Basic pipeline execution
-- [x] Simple UI
-- [x] PostgreSQL integration
-
-### M2: UI & Multi-Tenancy ✅
-- [x] Sidebar navigation layout
-- [x] Dashboard with stats
-- [x] Multi-tenancy data model (organizations, users, memberships, API keys)
-- [x] Deployment pages (environments, services, targets, history)
-- [x] Settings pages (general, team, secrets, tokens, git, notifications)
-- [x] Pipeline creation wizard (7-step)
-- [x] All routes working
-
-### M3: Kubernetes Ready (Next)
-- [ ] KubernetesExecutor
-- [ ] KubernetesDeployer
-- [ ] Helm chart
-- [ ] Authentication (OAuth2/OIDC)
-
-### M4: Multi-Tenant Production
-- [ ] OPA integration
-- [ ] Artifact storage (S3/GCS)
-- [ ] Secret management
-- [ ] Quota enforcement
-
-### M5: Advanced Features
-- [ ] DAG visualization
-- [ ] Canary deployments
-- [ ] Caching
-- [ ] Notifications (actually send them)
-- [ ] Preview environments
-- [ ] Additional deployers (Fly, Cloud Run)
+### 7.2 Helm Chart
+- [ ] Production K8s deployment
+- [ ] HA configuration
+- [ ] Ingress with TLS
 
 ---
 
@@ -333,40 +259,31 @@ Replace Jenkins/CircleCI/Argo with a self-hosted, open-source CI/CD tool that:
 | Language | Rust | ✅ |
 | Web Framework | Axum 0.8 | ✅ |
 | Database | PostgreSQL + SQLx | ✅ |
-| Type-safe SQL | Clorinde | ✅ |
-| Job Queue | PostgreSQL | ✅ |
 | Config Format | KDL | ✅ |
-| Templating | Askama 0.14 + askama_web | ✅ |
+| Templating | Askama 0.14 | ✅ |
 | CSS | Tailwind CSS | ✅ |
 | Interactivity | htmx + WebSocket | ✅ |
-| Auth | OIDC/OAuth2 | ❌ |
-| Policy Engine | Open Policy Agent | ❌ |
 | Container Runtime | Docker (bollard) | ✅ |
-| K8s Client | kube-rs | Partial |
-| Object Store | object_store crate | ❌ |
-| Tracing | OpenTelemetry | ❌ |
-| CLI | clap | ✅ |
+| K8s Client | kube-rs | ✅ |
+| IaC | Terraform/OpenTofu | Planned |
+| Auth | OIDC/OAuth2 | Planned |
+| Policy Engine | Open Policy Agent | Planned |
 
 ---
 
-## What's Left (Priority Order)
+## Milestones
 
-### High Priority
-1. **KubernetesExecutor** - Run pipeline jobs as K8s pods (scaffolded, needs implementation)
-2. **Authentication** - OAuth2/OIDC for user login, connect to users table
-3. **DAG Visualization** - Visual pipeline stage graph in run detail page
+### M1: Local Dev MVP ✅
+- [x] KDL parsing, Docker executor, basic UI, PostgreSQL
 
-### Medium Priority
-4. **KubernetesDeployer** - Deploy services to K8s clusters
-5. **Artifact Storage** - S3/GCS for build outputs
-6. **Secret Management** - Integrate with Vault or K8s secrets
-7. **Notifications** - Actually send Slack/webhook notifications
-8. **Git Webhooks** - GitHub/GitLab webhook receivers for auto-triggering
+### M2: Production Pipeline Engine ✅
+- [x] K8s executor, stage result persistence, real-time UI, variable interpolation
 
-### Lower Priority
-9. **Helm Chart** - Production K8s deployment
-10. **OPA Integration** - Fine-grained authorization
-11. **Caching Layer** - Speed up builds
-12. **Matrix Builds** - Multiple configurations
-13. **Preview Environments** - Per-PR deployments
-14. **Additional Deployers** - Fly.io, Cloud Run, Lambda
+### M3: Infrastructure-as-Code (Current)
+- [ ] Stack management, Terraform runner, state storage, plan/apply workflow
+
+### M4: Full Platform
+- [ ] Authentication, deployers, environment integration
+
+### M5: Enterprise Features
+- [ ] OPA policies, drift detection, cost estimation, audit logs
